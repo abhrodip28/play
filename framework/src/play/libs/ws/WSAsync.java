@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 
+import com.ning.http.client.providers.netty.NettyAsyncHttpProviderConfig;
 import org.apache.commons.lang.NotImplementedException;
 
 import oauth.signpost.AbstractOAuthConsumer;
@@ -84,6 +85,13 @@ public class WSAsync implements WSImpl {
             confBuilder.setUserAgent(userAgent);
         }
         confBuilder.setFollowRedirects(true);
+
+        //configure AsyncHttpClient to use async connect
+        NettyAsyncHttpProviderConfig asyncProviderConfig = new NettyAsyncHttpProviderConfig();
+        asyncProviderConfig.addProperty(NettyAsyncHttpProviderConfig.EXECUTE_ASYNC_CONNECT, "true");
+
+        confBuilder.setAsyncHttpClientProviderConfig( asyncProviderConfig );
+
         httpClient = new AsyncHttpClient(confBuilder.build());
     }
 
