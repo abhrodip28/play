@@ -519,12 +519,8 @@ public class PlayHandler extends SimpleChannelUpstreamHandler {
             body = new ByteArrayInputStream(n);
         }
 
-        request.url = uri;
-        request.host = nettyRequest.getHeader(HOST);
-        request.isLoopback = ((InetSocketAddress) ctx.getChannel().getRemoteAddress()).getAddress().isLoopbackAddress() && request.host.matches("^127\\.0\\.0\\.1:?[0-9]*$");
-
         String host = nettyRequest.getHeader(HOST);
-        boolean isLoopback;
+        boolean isLoopback = false;
         try {
             isLoopback = ((InetSocketAddress) ctx.getChannel().getRemoteAddress()).getAddress().isLoopbackAddress() && host.matches("^127\\.0\\.0\\.1:?[0-9]*$");
         } catch(Exception e) {
