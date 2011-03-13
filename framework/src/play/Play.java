@@ -167,6 +167,11 @@ public class Play {
     public static boolean lazyLoadTemplates = false;
 
     /**
+     * This is used as default encoding everywhere related to the web: request, response, WS
+     */
+    public static final String defaultWebEncoding = "utf-8";
+
+    /**
      * Init the framework
      *
      * @param root The application path
@@ -447,6 +452,33 @@ public class Play {
             if (secretKey.length() == 0) {
                 Logger.warn("No secret key defined. Sessions will not be encrypted");
             }
+
+            // Response encoding
+            String defaultResponseEncoding = configuration.getProperty("application.response.encoding");
+            if( defaultResponseEncoding != null ) {
+                Logger.info("Using custom default response encoding: " + defaultResponseEncoding);
+                Http.Response.defaultEncoding = defaultResponseEncoding;
+                // Must update current response also, since the request/response triggering
+                // this configuration-loading in dev-mode have already been
+                // set up with the previous encoding
+                if( Http.Response.current() != null ) {
+                    Http.Response.current().encoding = defaultResponseEncoding;
+                }
+            }
+
+            // Request encoding
+            String defaultRequestEncoding = configuration.getProperty("application.request.encoding");
+            if( defaultRequestEncoding != null ) {
+                Logger.info("Using custom default request encoding: " + defaultRequestEncoding);
+                Http.Request.defaultEncoding = defaultRequestEncoding;
+                // Must update current request also, since the request/response triggering
+                // this configuration-loading in dev-mode have already been
+                // set up with the previous encoding
+                if( Http.Request.current() != null ) {
+                    Http.Request.current().encoding = defaultRequestEncoding;
+                }
+            }
+
 
             // Try to load all classes
             Play.classloader.getAllClasses();

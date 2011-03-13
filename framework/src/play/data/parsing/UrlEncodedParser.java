@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import play.exceptions.UnexpectedException;
+import play.mvc.Http;
 import play.utils.Utils;
 
 /**
@@ -19,7 +20,8 @@ public class UrlEncodedParser extends DataParser {
     
     public static Map<String, String[]> parse(String urlEncoded) {
         try {
-            return new UrlEncodedParser().parse(new ByteArrayInputStream(urlEncoded.getBytes("utf-8")));
+            final String encoding = Http.Request.current().encoding;
+            return new UrlEncodedParser().parse(new ByteArrayInputStream(urlEncoded.getBytes( encoding )));
         } catch (UnsupportedEncodingException ex) {
             throw new UnexpectedException(ex);
         }
@@ -33,17 +35,19 @@ public class UrlEncodedParser extends DataParser {
 
     @Override
     public Map<String, String[]> parse(InputStream is) {
+        final String encoding = Http.Request.current().encoding;
         try {
             Map<String, String[]> params = new HashMap<String, String[]>();
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             int b;
+            //TODO: This is realy slow!!
             while ((b = is.read()) != -1) {
                 os.write(b);
             }
             byte[] data = os.toByteArray();
             // add the complete body as a parameters
             if(!forQueryString) {
-                params.put("body", new String[] {new String(data, "utf-8")});
+                params.put("body", new String[] {new String(data, encoding)});
             }
             
             int ix = 0;
@@ -54,7 +58,7 @@ public class UrlEncodedParser extends DataParser {
                 byte c = data[ix++];
                 switch ((char) c) {
                     case '&':
-                        value = new String(data, 0, ox, "utf-8");
+                        value = new String(data, 0, ox, encoding);
                         if (key != null) {
                             Utils.Maps.mergeValueInMap(params, key, value);
                             key = null;
@@ -65,7 +69,7 @@ public class UrlEncodedParser extends DataParser {
                         break;
                     case '=':
                         if (key == null) {
-                            key = new String(data, 0, ox, "utf-8");
+                            key = new String(data, 0, ox, encoding);
                             ox = 0;
                         } else {
                             data[ox++] = c;
@@ -82,7 +86,7 @@ public class UrlEncodedParser extends DataParser {
                 }
             }
             //The last value does not end in '&'.  So save it now.
-            value = new String(data, 0, ox, "utf-8");
+            value = new String(data, 0, ox, encoding);
             if (key != null) {
                 Utils.Maps.mergeValueInMap(params, key, value);
             } else if (!value.isEmpty()) {

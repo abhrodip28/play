@@ -505,6 +505,28 @@ POST   /clients                 Clients.create
 * The browser then issues **GET /clients/3132**.
 * …
 
+h3. Customizing response encoding
+
+Play emphasize the use of UTF-8, but there might be situations where you need to return the response to the client in a different encoding..
+
+If you do need to use a different response encoding this can be done.
+
+To set the default response-encoding for all responses, you can specify it in application.conf:
+
+bc. application.response.encoding=ISO-8859-1
+
+To only use specific response-encoding for current response, you can do it like this in your Controller:
+
+bc. response.encoding = "ISO-8859-1"
+
+It is important to understand that this only affects which encoding is used when writing bytes/data back to the client. All the files that Play reads still have to be encoding using UTF-8.
+
+If the browser is going to pass back information to the Play!-server when using custom response-encoding, you also have to specify
+custom request-encoding.
+This cannot be done pr request,
+so you have to set a global default for all requests. You configure this in application.conf:
+
+bc. application.request.encoding=ISO-8859-1
 
 h2. <a name="interceptions">Interceptions</a>
 

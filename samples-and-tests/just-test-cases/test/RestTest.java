@@ -31,7 +31,9 @@ public class RestTest extends UnitTest {
 
     @Test
     public void testGet() throws Exception {
-        assertEquals("对!", WS.url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").get().getString());
+        // we have to explicit specify UTF-8 since we know we're sending chinese charachters
+        // utf-8 is the default, but we might have configured WS to use other default encoding.
+        assertEquals("对!", WS.withEncoding("utf-8").url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").get().getString());
     }
 
     @Test
@@ -43,21 +45,28 @@ public class RestTest extends UnitTest {
     public void testPost() throws Exception {
         JsonObject jsonResponse = new JsonObject();
         jsonResponse.addProperty("id", 101);
-        assertEquals(jsonResponse.toString(), WS.url("http://localhost:9003/ressource/%s", "名字").params(params).post().getJson().toString());
+        assertEquals(jsonResponse.toString(), WS.withEncoding("utf-8").url("http://localhost:9003/ressource/%s", "名字").params(params).post().getJson().toString());
         File fileToSend = new File(new URLDecoder().decode(getClass().getResource("/kiki.txt").getFile(), "UTF-8"));
         assertTrue(fileToSend.exists());
-        assertEquals("POSTED!", WS.url("http://localhost:9003/ressource/file/%s", "名字").files(new FileParam(fileToSend, "file")).post().getString());
-        assertEquals("FILE AND PARAMS POSTED!", WS.url("http://localhost:9003/ressource/fileAndParams/%s", "名字").files(new FileParam(fileToSend, "file")).params(params).post().getString());
+        
+        assertEquals("POSTED!", WS.withEncoding("utf-8").url("http://localhost:9003/ressource/file/%s", "名字").files(new FileParam(fileToSend, "file")).post().getString());
+        if( play.mvc.Http.Request.defaultEncoding.equalsIgnoreCase("utf-8")) {
+            assertEquals("FILE AND PARAMS POSTED!", WS.withEncoding("utf-8").url("http://localhost:9003/ressource/fileAndParams/%s", "名字").files(new FileParam(fileToSend, "file")).params(params).post().getString());
+        } else {
+            // multipartUrlEncodingWorkaround: when server an client is not "hardcoded" to use same encoding,
+    		// we cannot use other than default server-encoding in url, when we send both form-param AND fileupload (multipart)
+    		assertEquals("FILE AND PARAMS POSTED!", WS.withEncoding("utf-8").url("http://localhost:9003/ressource/fileAndParams/%s", "multipartUrlEncodingWorkaround").files(new FileParam(fileToSend, "file")).params(params).post().getString());
+        }
 
     }
 
     @Test
     public void testHead() throws Exception {
-        HttpResponse headResponse = WS.url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").head();
+        HttpResponse headResponse = WS.withEncoding("utf-8").url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").head();
         List<Header> headResponseHeaders = headResponse.getHeaders();
         assertTrue(headResponse.getStatus() == 200);
         assertEquals("", headResponse.getString());
-        HttpResponse getResponse = WS.url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").get();
+        HttpResponse getResponse = WS.withEncoding("utf-8").url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").get();
         assertTrue(getResponse.getStatus() == 200);
         List<Header> getResponseHeaders = getResponse.getHeaders();
         for (int i = 0; i < getResponseHeaders.size(); i++) {
@@ -71,17 +80,25 @@ public class RestTest extends UnitTest {
     public void testPut() throws Exception {
         JsonObject jsonResponse = new JsonObject();
         jsonResponse.addProperty("id", 101);
-        assertEquals(jsonResponse.toString(), WS.url("http://localhost:9003/ressource/%s", "名字").params(params).put().getJson().toString());
+        assertEquals(jsonResponse.toString(), WS.withEncoding("utf-8").url("http://localhost:9003/ressource/%s", "名字").params(params).put().getJson().toString());
         File fileToSend = new File(new URLDecoder().decode(getClass().getResource("/kiki.txt").getFile(), "UTF-8"));
         assertTrue(fileToSend.exists());
-        assertEquals("POSTED!", WS.url("http://localhost:9003/ressource/file/%s", "名字").files(new FileParam(fileToSend, "file")).put().getString());
-        assertEquals("FILE AND PARAMS POSTED!", WS.url("http://localhost:9003/ressource/fileAndParams/%s", "名字").files(new FileParam(fileToSend, "file")).params(params).put().getString());
+        assertEquals("POSTED!", WS.withEncoding("utf-8").url("http://localhost:9003/ressource/file/%s", "名字").files(new FileParam(fileToSend, "file")).put().getString());
+        
+        if( play.mvc.Http.Request.defaultEncoding.equalsIgnoreCase("utf-8")) {
+            assertEquals("FILE AND PARAMS POSTED!", WS.withEncoding("utf-8").url("http://localhost:9003/ressource/fileAndParams/%s", "名字").files(new FileParam(fileToSend, "file")).params(params).put().getString());
+        } else {
+            // multipartUrlEncodingWorkaround: when server an client is not "hardcoded" to use same encoding,
+    		// we cannot use other than default server-encoding in url, when we send both form-param AND fileupload (multipart)
+    		assertEquals("FILE AND PARAMS POSTED!", WS.withEncoding("utf-8").url("http://localhost:9003/ressource/fileAndParams/%s", "multipartUrlEncodingWorkaround").files(new FileParam(fileToSend, "file")).params(params).put().getString());
+        }
+
     }
 
     @Test
     public void testParallelCalls() throws Exception {
-        Future<HttpResponse> response = WS.url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").getAsync();
-        Future<HttpResponse> response2 = WS.url("http://localhost:9003/ressource/%s", "foobar").getAsync();
+        Future<HttpResponse> response = WS.withEncoding("utf-8").url("http://localhost:9003/ressource/%s", "ééééééçççççç汉语漢語").getAsync();
+        Future<HttpResponse> response2 = WS.withEncoding("utf-8").url("http://localhost:9003/ressource/%s", "foobar").getAsync();
         int success = 0;
         while (success < 2) {
             if (response.isDone()) {

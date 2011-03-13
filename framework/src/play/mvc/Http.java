@@ -26,6 +26,7 @@ import play.libs.F.Option;
 import play.libs.F.Promise;
 import play.libs.F.EventStream;
 import play.libs.Time;
+import play.utils.HTTP;
 import play.utils.Utils;
 
 /**
@@ -168,6 +169,12 @@ public class Http {
     public static class Request implements Serializable {
 
         /**
+         * All requests should be decoded using this encoding, if
+         * encoding is not supplied in request
+         */
+        public static String defaultEncoding = Play.defaultWebEncoding;
+
+        /**
          * Server host
          */
         public String host;
@@ -199,6 +206,11 @@ public class Http {
          * Request content-type
          */
         public String contentType;
+        /**
+         * This is the encoding used to decode this request.
+         * If encoding-info is not found in request, then defaultEncoding is used
+         */
+        public String encoding = defaultEncoding;
         /**
          * Controller to invoke
          */
@@ -324,7 +336,21 @@ public class Http {
             newRequest.method = _method;
             newRequest.path = _path;
             newRequest.querystring = _querystring;
-            newRequest.contentType = _contentType;
+
+            // must try to extract encoding-info from contentType
+            if( _contentType == null ) {
+                newRequest.contentType = "text/html".intern();
+            } else {
+
+                HTTP.ContentTypeWithEncoding contentTypeEncoding = HTTP.parseContentType( _contentType );
+                newRequest.contentType = contentTypeEncoding.contentType;
+                // check for encoding-info
+                if( contentTypeEncoding.encoding != null ) {
+                    // encoding-info was found in request
+                    newRequest.encoding = contentTypeEncoding.encoding;
+                }
+            }
+
             newRequest.body = _body;
             newRequest.url = _url;
             newRequest.host = _host;
@@ -540,6 +566,11 @@ public class Http {
     public static class Response {
 
         /**
+         * This is the default encoding used for all new responses
+         */
+        public static String defaultEncoding = Play.defaultWebEncoding;
+
+        /**
          * Response status code
          */
         public Integer status = 200;
@@ -563,6 +594,11 @@ public class Http {
          * Send this file directly
          */
         public Object direct;
+
+        /**
+         * The encoding used when writing response to client
+         */
+        public String encoding = defaultEncoding;
         /**
          * Bind to thread
          */
@@ -742,9 +778,9 @@ public class Http {
 
         public void print(Object o) {
             try {
-                out.write(o.toString().getBytes("utf-8"));
+                out.write(o.toString().getBytes(Response.current().encoding));
             } catch (IOException ex) {
-                throw new UnexpectedException("UTF-8 problem ?", ex);
+                throw new UnexpectedException("Encoding problem ?", ex);
             }
         }
 

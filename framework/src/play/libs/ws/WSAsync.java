@@ -1,14 +1,13 @@
 package play.libs.ws;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.ning.http.client.*;
 import oauth.signpost.AbstractOAuthConsumer;
 import oauth.signpost.exception.OAuthCommunicationException;
 import oauth.signpost.exception.OAuthExpectationFailedException;
@@ -29,10 +28,7 @@ import play.libs.WS.WSImpl;
 import play.libs.WS.WSRequest;
 import play.mvc.Http.Header;
 
-import com.ning.http.client.AsyncCompletionHandler;
-import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClient.BoundRequestBuilder;
-import com.ning.http.client.AsyncHttpClientConfig;
 import com.ning.http.client.AsyncHttpClientConfig.Builder;
 import com.ning.http.client.FilePart;
 import com.ning.http.client.PerRequestConfig;
@@ -40,7 +36,6 @@ import com.ning.http.client.ProxyServer;
 import com.ning.http.client.Realm.AuthScheme;
 import com.ning.http.client.Realm.RealmBuilder;
 import com.ning.http.client.Response;
-import com.ning.http.client.StringPart;
 
 /**
  * Simple HTTP client to make webservices requests.
@@ -96,16 +91,16 @@ public class WSAsync implements WSImpl {
         httpClient.close();
     }
 
-    public WSRequest newRequest(String url) {
-        return new WSAsyncRequest(url);
+    public WSRequest newRequest(String url, String encoding) {
+        return new WSAsyncRequest(url, encoding);
     }
 
     public class WSAsyncRequest extends WSRequest {
 
         protected String type = null;
 
-        protected WSAsyncRequest(String url) {
-            this.url = url;
+        protected WSAsyncRequest(String url, String encoding) {
+            super(url, encoding);
         }
 
         /** Execute a GET request synchronously. */
@@ -306,19 +301,32 @@ public class WSAsync implements WSImpl {
                     builder.addBodyPart(new FilePart(this.fileParams[i].paramName,
                             this.fileParams[i].file,
                             MimeTypes.getMimeType(this.fileParams[i].file.getName()),
-                            null));
+                            encoding));
                 }
                 if (this.parameters != null) {
-                    for (String key : this.parameters.keySet()) {
-                        Object value = this.parameters.get(key);
-                        if (value instanceof Collection<?> || value.getClass().isArray()) {
-                            Collection<?> values = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Collection<?>) value;
-                            for (Object v : values) {
-                                builder.addBodyPart(new StringPart(key, v.toString()));
+                    // known problem: When using file upload AND params in post/put,
+                    // then there is a problem with the encoding of the url.
+                    // The url is encoded correct, but there is now way to tell the other end which encoding is used.
+                    // I cannot see in the HTTP spec how to fix this.
+                    // the workaround is that the server has to know what encoding to use when decoding the url
+                    try {
+                        for (String key : this.parameters.keySet()) {
+                            Object value = this.parameters.get(key);
+                            if (value instanceof Collection<?> || value.getClass().isArray()) {
+                                Collection<?> values = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Collection<?>) value;
+                                for (Object v : values) {
+                                    //builder.addBodyPart(new StringPart(key, encode(v.toString())));
+                                    Part part = new ByteArrayPart(key, null, v.toString().getBytes(encoding), "text/plain", encoding);
+                                    builder.addBodyPart( part );
+                                }
+                            } else {
+                                //builder.addBodyPart(new StringPart(key, encode(value.toString())));
+                                Part part = new ByteArrayPart(key, null, value.toString().getBytes(encoding), "text/plain", encoding);
+                                builder.addBodyPart( part );
                             }
-                        } else {
-                            builder.addBodyPart(new StringPart(key, value.toString()));
                         }
+                    } catch(UnsupportedEncodingException e) {
+                        throw new RuntimeException(e);
                     }
                 }
                 return;
@@ -332,11 +340,11 @@ public class WSAsync implements WSImpl {
                         Collection<?> values = value.getClass().isArray() ? Arrays.asList((Object[]) value) : (Collection<?>) value;
                         for (Object v: values) {
                             if (isPostPut) builder.addParameter(key, v.toString());
-                            else builder.addQueryParameter(key, WS.encode(v.toString()));
+                            else builder.addQueryParameter(key, encode(v.toString()));
                         }
                     } else {
                         if (isPostPut) builder.addParameter(key, value.toString());
-                        else builder.addQueryParameter(key, WS.encode(value.toString()));
+                        else builder.addQueryParameter(key, encode(value.toString()));
                     }
                 }
             }
@@ -348,13 +356,24 @@ public class WSAsync implements WSImpl {
                     builder.setBody((InputStream)this.body);
                 } else {
                     if(this.body != null) {
-                        builder.setBody(this.body.toString());
+                        try {
+                            byte[] bodyBytes = this.body.toString().getBytes( this.encoding );
+                            InputStream bodyInStream = new ByteArrayInputStream( bodyBytes );
+                            builder.setBody( bodyInStream );
+                        } catch ( UnsupportedEncodingException e) {
+                            throw new RuntimeException(e);
+                        }
                     }
                 }
-                if(this.mimeType != null) {
-                    builder.setHeader("Content-Type", this.mimeType);
-                }
             }
+            String contentType;
+            if(this.mimeType != null) {
+                contentType = this.mimeType;
+            } else {
+                contentType = "application/x-www-form-urlencoded";
+            }
+            builder.setHeader("Content-Type", contentType + "; charset="+this.encoding);
+
         }
 
     }
@@ -396,21 +415,6 @@ public class WSAsync implements WSImpl {
                 result.add(new Header(key, hdrs.get(key)));
             }
             return result;
-        }
-
-        /**
-         * get the response body as a string
-         * @return the body of the http response
-         */
-        @Override
-        public String getString() {
-            try {
-                return response.getResponseBody();
-            } catch (IllegalStateException e) {
-                return ""; // Workaround AHC's bug on empty responses
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
         }
 
         /**
