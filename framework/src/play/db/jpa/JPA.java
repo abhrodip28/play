@@ -1,75 +1,114 @@
 package play.db.jpa;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
+import javax.persistence.*;
 
+import org.hibernate.ejb.Ejb3Configuration;
+import play.db.DB;
+import play.db.DBConfig;
 import play.exceptions.JPAException;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * JPA Support
+ *
+ * This class holds reference to all JPA configurations.
+ * Each configuration has its own instance of JPAConfig.
+ *
+ * dbConfigName corresponds to properties-names in application.conf.
+ *
+ * The default DBConfig is the one configured using 'db.' in application.conf
+ *
+ * dbConfigName = 'other' is configured like this:
+ *
+ * db_other = mem
+ * db_other.user = batman
+ *
+ * This class also preserves backward compatibility by
+ * directing static methods to the default JPAConfig-instance
+ *
+ * A particular JPAConfig-instance uses the DBConfig with the same configName
  */
 public class JPA {
 
-    public static EntityManagerFactory entityManagerFactory = null;
-    public static ThreadLocal<JPA> local = new ThreadLocal<JPA>();
-    public EntityManager entityManager;
-    boolean readonly = true;
+    /**
+     * Holds ref to the default jpa config named defaultJPAConfigName
+     */
+    private static JPAConfig defaultJPAConfig = null;
+    private final static Map<String, JPAConfig> jpaConfigs = new HashMap<String, JPAConfig>(1);
 
-    static JPA get() {
-        if (local.get() == null) {
-            throw new JPAException("The JPA context is not initialized. JPA Entity Manager automatically start when one or more classes annotated with the @javax.persistence.Entity annotation are found in the application.");
+    protected static void addConfiguration(String configName, Ejb3Configuration cfg) {
+        JPAConfig jpaConfig = new JPAConfig(cfg);
+        jpaConfigs.put(configName, jpaConfig);
+        if( DBConfig.defaultDbConfigName.equals(configName)) {
+            defaultJPAConfig = jpaConfig;
+            JPQL.createSingleton();
         }
-        return local.get();
     }
 
-    static void clearContext() {
-        local.remove();
+    public static JPAConfig getJPAConfig(String jpaConfigName) {
+        return getJPAConfig(jpaConfigName, false);
     }
 
-    static void createContext(EntityManager entityManager, boolean readonly) {
-        if (local.get() != null) {
-            try {
-                local.get().entityManager.close();
-            } catch(Exception e) {
-                // Let's it fail
+    public static JPAConfig getJPAConfig(String jpaConfigName, boolean ignoreError) {
+        JPAConfig jpaConfig = jpaConfigs.get(jpaConfigName);
+        if (jpaConfig==null && !ignoreError) {
+            throw new JPAException("No JPAConfig is found with the name " + jpaConfigName);
+        }
+        return jpaConfig;
+    }
+
+    protected static void close() {
+        if (isEnabled()) {
+            for( JPAConfig jpaConfig : jpaConfigs.values()) {
+                jpaConfig.close();
             }
-            local.remove();
+            jpaConfigs.clear();
+            defaultJPAConfig = null;
         }
-        JPA context = new JPA();
-        context.entityManager = entityManager;
-        context.readonly = readonly;
-        local.set(context);
     }
-    
-    // ~~~~~~~~~~~
+
+    /**
+     * clear current JPA context and transaction
+     * @param rollback shall current transaction be committed (false) or cancelled (true)
+     */
+    public static void closeTx(boolean rollback) {
+        for (JPAConfig jpaConfig : jpaConfigs.values()) {
+            if (jpaConfig.threadHasJPAContext()) {
+                jpaConfig.getJPAContext().closeTx(rollback);
+            }
+        }
+    }
     
     /*
      * Retrieve the current entityManager
      */ 
     public static EntityManager em() {
-        return get().entityManager;
+        return defaultJPAConfig.getJPAContext().em();
     }
     
     /*
      * Tell to JPA do not commit the current transaction
      */ 
     public static void setRollbackOnly() {
-        em().getTransaction().setRollbackOnly();
+        defaultJPAConfig.getJPAContext().em().getTransaction().setRollbackOnly();
     }
 
     /**
      * @return true if an entityManagerFactory has started
      */
     public static boolean isEnabled() {
-        return entityManagerFactory != null;
+        return !jpaConfigs.isEmpty();
     }
-    
+
     /**
      * Execute a JPQL query
      */
     public static int execute(String query) {
-        return em().createQuery(query).executeUpdate();
+        return defaultJPAConfig.getJPAContext().em().createQuery(query).executeUpdate();
     }
 
     /*
@@ -77,19 +116,27 @@ public class JPA {
      * (In most case you want to use the local entityManager with em)
      */ 
     public static EntityManager newEntityManager() {
-        return entityManagerFactory.createEntityManager();
+        return defaultJPAConfig.newEntityManager();
     }
 
     /**
      * @return true if current thread is running inside a transaction
      */
     public static boolean isInsideTransaction() {
-        try{
-            EntityManager manager = JPA.get().entityManager;
-		    EntityTransaction transaction =  manager.getTransaction();
-            return transaction != null;
-        }catch(JPAException e){
-            return false;
+        return defaultJPAConfig.isInsideTransaction();
+    }
+
+    protected static void clear() {
+        for (JPAConfig jpaConfig : jpaConfigs.values()) {
+            if (jpaConfig.threadHasJPAContext()) {
+                jpaConfig.getJPAContext().em().clear();
+            }
+        }
+    }
+
+    protected static void clearJPAContext() {
+        for (JPAConfig jpaConfig : jpaConfigs.values()) {
+            jpaConfig.clearJPAContext();
         }
     }
 }
