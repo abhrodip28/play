@@ -5,9 +5,12 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.sql.DataSource;
+
+import play.Invoker;
 import play.db.jpa.JPA;
 import play.exceptions.DatabaseException;
 import play.Logger;
+import sun.tools.tree.PreIncExpression;
 
 /**
  * Database connection utilities.
@@ -32,7 +35,13 @@ public class DB {
             try {
                 Connection connection = localConnection.get();
                 localConnection.set(null);
-                connection.close();
+
+                Connection connectionFromInvocator = (Connection)Invoker.InvocationContext.current().getDataFromInvocator(DBPlugin.class);
+                if (connectionFromInvocator != null) {
+                    // Our connection was borrowed by other thread - it is not our responsibility to close it..
+                } else {
+                    connection.close();
+                }
             } catch (Exception e) {
                 throw new DatabaseException("It's possible than the connection was not properly closed !", e);
             }
@@ -53,7 +62,14 @@ public class DB {
             if (localConnection.get() != null) {
                 return localConnection.get();
             }
-            Connection connection = datasource.getConnection();
+
+            Connection connection = null;
+            Connection connectionFromInvocator = (Connection)Invoker.InvocationContext.current().getDataFromInvocator(DBPlugin.class);
+            if (connectionFromInvocator != null ) {
+                connection = connectionFromInvocator;
+            } else {
+                connection = datasource.getConnection();
+            }
             localConnection.set(connection);
             return connection;
         } catch (SQLException ex) {

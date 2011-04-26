@@ -254,6 +254,16 @@ public class DBPlugin extends PlayPlugin {
         return false;
     }
 
+    @Override
+    public Object beforeFunctionalTestRequestInvocation() {
+
+        if (DB.localConnection.get() != null) {
+            return DB.localConnection.get();
+        }
+
+        return null;
+    }
+
     /**
      * Needed because DriverManager will not load a driver ouside of the system classloader
      */

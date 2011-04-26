@@ -18,6 +18,8 @@ import java.net.MalformedURLException;
 import org.junit.Before;
 import play.Invoker.InvocationContext;
 
+import play.Play;
+import play.PlayPlugin;
 import play.classloading.enhancers.ControllersEnhancer.ControllerInstrumentation;
 import play.mvc.ActionInvoker;
 import play.mvc.Http;
@@ -37,7 +39,8 @@ import play.mvc.Router.ActionDefinition;
 /**
  * Application tests support
  */
-public abstract class FunctionalTest extends BaseTest {
+public abstract class
+        FunctionalTest extends BaseTest {
 
     public static final String APPLICATION_X_WWW_FORM_URLENCODED = "application/x-www-form-urlencoded";
     public static final String MULTIPART_FORM_DATA = "multipart/form-data";
@@ -257,23 +260,40 @@ public abstract class FunctionalTest extends BaseTest {
         return makeRequest(request);
     }
 
+    protected static class FunctionalTestInvocation extends Invoker.Invocation {
+
+        private final Request request;
+        private final Response response;
+        private final Map<Class<? extends PlayPlugin>, Object> plugin2dataMap;
+
+        public FunctionalTestInvocation(Request request, Response response, Map<Class<? extends PlayPlugin>, Object> plugin2dataMap) {
+            this.request = request;
+            this.response = response;
+            this.plugin2dataMap = plugin2dataMap;
+        }
+
+        @Override
+        public void execute() throws Exception {
+            ActionInvoker.invoke(request, response);
+        }
+
+        @Override
+        public InvocationContext getInvocationContext() {
+            ActionInvoker.resolve(request, response);
+            InvocationContext invocationContext = new InvocationContext(Http.invocationType,
+                    plugin2dataMap,
+                    request.invokedMethod.getAnnotations(),
+                    request.invokedMethod.getDeclaringClass().getAnnotations());
+            return invocationContext;
+        }
+
+    }
+
     public static void makeRequest(final Request request, final Response response) {
-        final Future invocationResult = TestEngine.functionalTestsExecutor.submit(new Invoker.Invocation() {
 
-            @Override
-            public void execute() throws Exception {                
-                ActionInvoker.invoke(request, response);
-            }
+        final Map<Class<? extends PlayPlugin>, Object> plugin2dataMap = Play.pluginCollection.beforeFunctionalTestRequestInvocation();
 
-            @Override
-            public InvocationContext getInvocationContext() {
-                ActionInvoker.resolve(request, response);
-                return new InvocationContext(Http.invocationType,
-                        request.invokedMethod.getAnnotations(),
-                        request.invokedMethod.getDeclaringClass().getAnnotations());
-            }
-
-        });
+        final Future invocationResult = TestEngine.functionalTestsExecutor.submit(new FunctionalTestInvocation(request, response, plugin2dataMap));
         try {
             invocationResult.get(30, TimeUnit.SECONDS);
             if (savedCookies == null) {
@@ -287,6 +307,8 @@ public abstract class FunctionalTest extends BaseTest {
             response.out.flush();
         } catch (Exception ex) {
             throw new RuntimeException(ex);
+        } finally {
+            Play.pluginCollection.afterFunctionalTestRequestInvocation(plugin2dataMap);
         }
     }
 

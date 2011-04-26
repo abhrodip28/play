@@ -615,6 +615,33 @@ public class PluginCollection {
         return null;
     }
 
+    /**
+     * Calls beforeFunctionalTestRequestInvocation() on all plugins. Map returned contains
+     * Plugin => the data they returned
+     */
+    public Map<Class<? extends PlayPlugin>, Object> beforeFunctionalTestRequestInvocation() {
+        Map<Class<? extends PlayPlugin>, Object> plugin2data = new HashMap<Class<? extends PlayPlugin>, Object>();
+        for( PlayPlugin plugin : getEnabledPlugins()) {
+            Object data = plugin.beforeFunctionalTestRequestInvocation();
+            if (data != null) {
+                plugin2data.put(plugin.getClass(), data);
+            }
+        }
+        return plugin2data;
+    }
+
+    /**
+     *
+     * @param plugin2data pass the same map as retrieved from beforeFunctionalTestRequestInvocation()
+     */
+    public void afterFunctionalTestRequestInvocation( Map<Class<? extends PlayPlugin>, Object> plugin2data ) {
+        for( PlayPlugin plugin : getEnabledPlugins()) {
+            plugin.afterFunctionalTestRequestInvocation( plugin2data.get( plugin.getClass()));
+        }
+
+    }
+
+
 
 
 

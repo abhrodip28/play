@@ -301,5 +301,22 @@ public abstract class PlayPlugin implements Comparable<PlayPlugin> {
     public Object willBeValidated(Object value) {
         return null;
     }
+
+    /**
+     * If a plugin wants to make some data available to the Request-thread started by FunctionalTest
+     * It can return the data here..
+     *
+     * Data returned here can be accessed later via InvocationContext. 
+     */
+    public Object beforeFunctionalTestRequestInvocation() {
+        return null;
+    }
+
+    /**
+     * If a plugin returned data from beforeFunctionalTestRequestInvocation(), it is passed as 'data' here
+     * @param data
+     */
+    public void afterFunctionalTestRequestInvocation( Object data ) {
+    }
     
 }

@@ -90,6 +90,7 @@ public class Invoker {
         public static ThreadLocal<InvocationContext> current = new ThreadLocal<InvocationContext>();
         private final List<Annotation> annotations;
         private final String invocationType;
+        private final Map<Class<? extends PlayPlugin>, Object> dataFromInvocator;
 
         public static InvocationContext current() {
             return current.get();
@@ -98,16 +99,19 @@ public class Invoker {
         public InvocationContext(String invocationType) {
             this.invocationType = invocationType;
             this.annotations = new ArrayList<Annotation>();
+            this.dataFromInvocator = null;
         }
 
         public InvocationContext(String invocationType, List<Annotation> annotations) {
             this.invocationType = invocationType;
             this.annotations = annotations;
+            this.dataFromInvocator = null;
         }
 
         public InvocationContext(String invocationType, Annotation[] annotations) {
             this.invocationType = invocationType;
             this.annotations = Arrays.asList(annotations);
+            this.dataFromInvocator = null;
         }
 
         public InvocationContext(String invocationType, Annotation[]... annotations) {
@@ -116,6 +120,16 @@ public class Invoker {
             for (Annotation[] some : annotations) {
                 this.annotations.addAll(Arrays.asList(some));
             }
+            this.dataFromInvocator = null;
+        }
+
+        public InvocationContext(String invocationType, Map<Class<? extends PlayPlugin>, Object> dataFromInvocator, Annotation[]... annotations) {
+            this.invocationType = invocationType;
+            this.annotations = new ArrayList<Annotation>();
+            for (Annotation[] some : annotations) {
+                this.annotations.addAll(Arrays.asList(some));
+            }
+            this.dataFromInvocator = dataFromInvocator;
         }
 
         public List<Annotation> getAnnotations() {
@@ -148,6 +162,16 @@ public class Invoker {
         public String getInvocationType() {
             return invocationType;
         }
+
+
+        public Object getDataFromInvocator(Class<? extends PlayPlugin> pluginClass) {
+            if (dataFromInvocator == null ) {
+                return null;
+            }
+
+            return dataFromInvocator.get(pluginClass);
+        }
+
 
         @Override
         public String toString() {
@@ -366,7 +390,6 @@ public class Invoker {
             if (task instanceof Promise) {
                 Promise<V> smartFuture = (Promise<V>) task;
                 smartFuture.onRedeem(new F.Action<F.Promise<V>>() {
-                    @Override
                     public void invoke(Promise<V> result) {
                         executor.submit(invocation);
                     }

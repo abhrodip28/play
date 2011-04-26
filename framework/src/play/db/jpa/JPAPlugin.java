@@ -39,6 +39,7 @@ import org.hibernate.collection.PersistentCollection;
 import org.hibernate.ejb.Ejb3Configuration;
 import org.hibernate.type.Type;
 
+import play.Invoker;
 import play.Invoker.InvocationContext;
 import play.Logger;
 import play.Play;
@@ -333,12 +334,20 @@ public class JPAPlugin extends PlayPlugin {
         if (!JPA.isEnabled()) {
             return;
         }
-        EntityManager manager = JPA.entityManagerFactory.createEntityManager();
-        manager.setFlushMode(FlushModeType.COMMIT);
-        manager.setProperty("org.hibernate.readOnly", readonly);
-        if (autoTxs) {
-            manager.getTransaction().begin();
+        EntityManager manager = null;
+
+        EntityManager managerFromInvocator = (EntityManager)InvocationContext.current().getDataFromInvocator(JPAPlugin.class);
+        if (managerFromInvocator != null) {
+            manager = managerFromInvocator;
+        } else {
+            manager = JPA.entityManagerFactory.createEntityManager();
+            manager.setFlushMode(FlushModeType.COMMIT);
+            manager.setProperty("org.hibernate.readOnly", readonly);
+            if (autoTxs) {
+                manager.getTransaction().begin();
+            }
         }
+
         JPA.createContext(manager, readonly);
     }
 
@@ -351,6 +360,18 @@ public class JPAPlugin extends PlayPlugin {
             return;
         }
         EntityManager manager = JPA.get().entityManager;
+
+
+        if ( InvocationContext.current().getDataFromInvocator(JPAPlugin.class) != null ) {
+            // we borrowed the EM from another thread so it is not our responsibility to close it.
+            // we just have to make sure that If we want to rollback, then they must also..
+            if ( rollback && manager.getTransaction() != null ) {
+                manager.getTransaction().setRollbackOnly();
+            }
+            JPA.clearContext();
+            return ;
+        }
+
         try {
             if (autoTxs) {
                 // Be sure to set the connection is non-autoCommit mode as some driver will complain about COMMIT statement
@@ -403,6 +424,14 @@ public class JPAPlugin extends PlayPlugin {
         if (JPA.isEnabled()) {
             JPA.em().clear();
         }
+    }
+
+    @Override
+    public Object beforeFunctionalTestRequestInvocation() {
+        if (JPA.local.get() != null) {
+            return JPA.em();
+        }
+        return null;
     }
 
     public static class JPAModelLoader implements Model.Factory {
