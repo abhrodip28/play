@@ -204,6 +204,15 @@ public class JPABase implements Serializable, play.db.Model {
     }
 
     /**
+     * [#782]
+     * Same as em() - This method is used by Scala-module to make it possible to compile against both Play 1.3 and 1.2
+     * @return EntityManager
+     */
+    public EntityManager _em_forScalaModule() {
+        return em();
+    }
+
+    /**
      * Retrieve the current entityManager
      * @return the current entityManager
      */
