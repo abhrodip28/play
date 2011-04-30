@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.Future;
 
 import oauth.signpost.AbstractOAuthConsumer;
 import oauth.signpost.exception.OAuthCommunicationException;
@@ -283,18 +285,26 @@ public class WSAsync implements WSImpl {
         private Promise<HttpResponse> execute(BoundRequestBuilder builder) {
             try {
                 final Promise<HttpResponse> smartFuture = new Promise<HttpResponse>();
-                prepare(builder).execute(new AsyncCompletionHandler<HttpResponse>() {
+                Future<?> futureForRealTask = prepare(builder).execute(new AsyncCompletionHandler<HttpResponse>() {
                     @Override
                     public HttpResponse onCompleted(Response response) throws Exception {
                         HttpResponse httpResponse = new HttpAsyncResponse(response);
                         smartFuture.invoke(httpResponse);
                         return httpResponse;
                     }
+
                     @Override
                     public void onThrowable(Throwable t) {
+                        if (t instanceof CancellationException) {
+                            // The WSAsync operation was cancelled.
+                            smartFuture.invoke(null);
+                            return;
+                        }
                         throw new RuntimeException(t);
                     }
                 });
+
+                smartFuture.setFutureForRealTask(futureForRealTask);
 
                 return smartFuture;
             } catch (Exception e) {

@@ -9,29 +9,91 @@ import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
+import play.Invoker;
+import play.Logger;
 import play.exceptions.UnexpectedException;
 
 public class F {
 
     public static class Promise<V> implements Future<V>, F.Action<V> {
 
+        private static class ScheduledFutureCancelTask implements Runnable {
+            private final Future<?> futureToCancel;
+
+            private ScheduledFutureCancelTask(Future<?> futureToCancel) {
+                this.futureToCancel = futureToCancel;
+            }
+
+            public void run() {
+                if (!futureToCancel.isDone()) {
+                    // try to cancel it
+                    Logger.debug("Executing scheduled task cancellation");
+                    if (!futureToCancel.cancel(true)) {
+                        Logger.debug("Error canceling task.. already done?");
+                    }
+                }
+            }
+        }
+
+        private Future<?> futureForRealTask = null;
+
         final CountDownLatch taskLock = new CountDownLatch(1);
-        boolean cancelled = false;
+
+        private ScheduledFuture<?> futureToScheduledCancelTask = null;
+
+        public void setFutureForRealTask(Future<?> futureForRealTask) {
+            this.futureForRealTask = futureForRealTask;
+        }
 
         public boolean cancel(boolean mayInterruptIfRunning) {
-            return false;
+            if (futureToScheduledCancelTask == null) {
+                throw new RuntimeException("Cannot cancel a Promise missing futureForRealTask");
+            }
+
+            return futureForRealTask.cancel(mayInterruptIfRunning);
+        }
+
+        /**
+         * Use this method to register a timeout for the task that this Promise is connected to.
+         * If the task has not finished normally when the scheduleCancel is executed, the task will
+         * be stoped using cancel(true) on the future
+         */
+        public Promise<V> withScheduledCancel(String duration) {
+            return withScheduledCancel( Time.parseDuration(duration), TimeUnit.SECONDS);
+        }
+
+
+        /**
+         * Use this method to register a timeout for the task that this Promise is connected to.
+         * If the task has not finished normally when the scheduleCancel is executed, the task will
+         * be stoped using cancel(true) on the future
+         */
+        public Promise<V> withScheduledCancel(long timeout, TimeUnit timeUnit) {
+            synchronized (this) {
+                if (futureToScheduledCancelTask != null ) {
+                    throw new RuntimeException("The promise has already a scheduled cancel registered");
+                }
+                if (futureForRealTask == null) {
+                    throw new RuntimeException("Cannot schedule cancel for a Promise missing futureForRealTask");
+                }
+                ScheduledFutureCancelTask cancelTask = new ScheduledFutureCancelTask(this);
+                futureToScheduledCancelTask = Invoker.executor.schedule( cancelTask, timeout, timeUnit);
+                return this;
+            }
         }
 
         public boolean isCancelled() {
-            return false;
+            return futureToScheduledCancelTask != null && futureForRealTask.isCancelled();
         }
 
         public boolean isDone() {
@@ -44,11 +106,17 @@ public class F {
 
         public V get() throws InterruptedException, ExecutionException {
             taskLock.await();
+            if (futureForRealTask != null && isCancelled()) {
+                throw new CancellationException("The promised task was canceled");
+            }
             return result;
         }
 
         public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
             taskLock.await(timeout, unit);
+            if (futureForRealTask != null && isCancelled()) {
+                throw new CancellationException();
+            }
             return result;
         }
         List<F.Action<Promise<V>>> callbacks = new ArrayList<F.Action<Promise<V>>>();
@@ -56,8 +124,13 @@ public class F {
         V result = null;
 
         public void invoke(V result) {
+            // The task that this is a Promise/Future for is done
             synchronized (this) {
                 if (!invoked) {
+                    if (futureToScheduledCancelTask!=null) {
+                        // in case our scheduled cancel task is not executed yet, we must cancel it.
+                        futureToScheduledCancelTask.cancel(true);
+                    }
                     invoked = true;
                     this.result = result;
                     taskLock.countDown();

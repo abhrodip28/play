@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Future;
 
 import org.w3c.dom.Document;
@@ -926,6 +927,8 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
         if(future.isDone()) {
             try {
                 return future.get();
+            } catch(CancellationException e) {
+                throw e;
             } catch(Exception e) {
                 throw new UnexpectedException(e);
             }
