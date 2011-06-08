@@ -117,5 +117,13 @@ public class Rest extends Controller {
         }
         renderText(r);
     }
+    
+    public static void redirectStart(String data) {
+        redirectTarget(data);
+    }
+    
+    public static void redirectTarget(String data2) {
+        renderText(data2);
+    }
 	
 }

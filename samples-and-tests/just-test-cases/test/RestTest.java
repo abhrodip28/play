@@ -128,6 +128,7 @@ public class RestTest extends UnitTest {
     @Test
     public void testEncodingEcho() {
         // verify that we have no encoding regression bugs related to raw urls and params
+
         if ( play.Play.defaultWebEncoding.equalsIgnoreCase("utf-8") ) {
             assertEquals("æøå|id|æøå|body||b|æøå|a|æøå|a|x", WS.url("http://localhost:9003/encoding/echo/%C3%A6%C3%B8%C3%A5?a=%C3%A6%C3%B8%C3%A5&a=x&b=%C3%A6%C3%B8%C3%A5").get().getString());
         }
@@ -142,6 +143,11 @@ public class RestTest extends UnitTest {
         // verify url ending with only ? or none
         assertEquals("abc|id|abc|body|", WS.url("http://localhost:9003/encoding/echo/abc?").get().getString());
         assertEquals("abc|id|abc|body|", WS.url("http://localhost:9003/encoding/echo/abc").get().getString());
+    }
+    
+    @Test
+    public void testRedirect() {
+        assertEquals("x=&æøå", WS.url("http://localhost:9003/rest/redirectStart").setParameter("data", "x=&æøå").get().getString());
     }
 
 }
