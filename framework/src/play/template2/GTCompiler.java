@@ -67,7 +67,7 @@ public class GTCompiler {
         StringBuilder gout = sc.gout;
 
         // generate groovy class
-        gout.append("class " + templateClassNameGroovy + " {\n");
+        gout.append("class " + templateClassNameGroovy + " extends play.template2.GTGroovyBase {\n");
 
         StringBuilder out = sc.out;
 
@@ -76,11 +76,12 @@ public class GTCompiler {
 
         out.append("import java.util.*;\n");
 
-        out.append("public class " + templateClassName + " extends play.template2.GTBase {\n");
+        out.append("public class " + templateClassName + " extends play.template2.GTJavaBase {\n");
 
-        // add templateClassNameGroovy-instance
-        out.append( "private final "+templateClassNameGroovy+ " g = new "+templateClassNameGroovy+"();\n");
-
+        // add constructor which initializes the templateClassNameGroovy-instance
+        out.append(" public "+templateClassName+"(Map<String,Object> args) {\n");
+        out.append("  super("+templateClassNameGroovy+".class, args);\n");
+        out.append(" }\n");
 
         while ( (fragment = processNextFragment(sc)) != null ) {
             rootFragments.add( fragment );
@@ -260,7 +261,7 @@ public class GTCompiler {
         gout.append( "}\n");
 
         // must return the javacode needed to get the data
-        return " Map tagArgs = (Map)g."+methodName+"();\n";
+        return " Map tagArgs = (Map)invokeGroovy(\""+methodName+"\");\n";
     }
 
     private String generateMethodName(String hint) {
@@ -288,7 +289,7 @@ public class GTCompiler {
         // add tag args code
         out.append(javaCodeToGetRefToArgs);
 
-        if ( !gtInternalTagsCompiler.generateCodeForGTFragments(tagName, tagArgString, contentMethodName, sc)) {
+        if ( !gtInternalTagsCompiler.generateCodeForGTFragments(tagName, contentMethodName, sc)) {
             // Tag was not an internal tag - must resolve it diferently
             //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
             out.append("//TODO: Missing tag impl.\n");

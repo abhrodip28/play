@@ -3,17 +3,31 @@ package play.template2;
 import org.junit.Test;
 import play.template2.tmp.Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 
 public class GTCompilerTest {
 
     @Test
-    public void runit() {
-        Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html();
+    public void runit() throws Exception {
+
+        Map<String, Object> args = new HashMap<String, Object>();
+
+        List<Integer> myList = Arrays.asList(1,2,3,4,5);
+
+        args.put("myList", myList);
+
+        Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html(args);
         t.main();
-        System.out.println(t.out);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        t.writeOutput(out, "utf-8");
+        System.out.println(new String(out.toByteArray(), "utf-8"));
     }
 
     @Test

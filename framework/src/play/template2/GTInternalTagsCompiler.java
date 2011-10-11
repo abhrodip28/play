@@ -12,20 +12,20 @@ import java.lang.reflect.Method;
 public class GTInternalTagsCompiler {
 
 
-    public boolean generateCodeForGTFragments( String tagName, String tagArgString, String contentMethodName, GTCompiler.SourceContext sc) {
+    public boolean generateCodeForGTFragments( String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
 
         // Check if we have a method named 'tag_tagName'
 
         Method tagMethod = null;
         try {
-            tagMethod = getClass().getMethod("tag_"+tagName, String.class, String.class, String.class, GTCompiler.SourceContext.class);
+            tagMethod = getClass().getMethod("tag_"+tagName, String.class, String.class, GTCompiler.SourceContext.class);
         } catch( Exception e) {
             // did not find a method to handle this tag
             return false;
         }
 
         try {
-            tagMethod.invoke(this, tagName, tagArgString, contentMethodName, sc);
+            tagMethod.invoke(this, tagName, contentMethodName, sc);
         } catch (Exception e) {
             throw new RuntimeException("Error generating code for tag '"+tagName+"'");
         }
@@ -33,7 +33,30 @@ public class GTInternalTagsCompiler {
         return true;
     }
 
-    public void tag_set(String tagName, String tagArgString, String contentMethodName, GTCompiler.SourceContext sc) {
+    public void tag_list(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+        out.append(" Collection items = (Collection)tagArgs.get(\"items\");\n");
+        out.append(" String as = (String)tagArgs.get(\"as\");\n");
+        out.append(" String itemName = (as==null?\"_\":as);\n");
+        out.append(" as = (as == null ? \"\" : as);\n");
+        out.append(" int i=0;\n");
+        out.append(" int size=items.size();\n");
+        out.append(" for(Object item : items) {\n");
+        // prepare for next iteration
+        out.append("   i++;\n");
+        out.append("   binding.setProperty(itemName, item);\n");
+        out.append("   binding.setProperty(as+\"_index\", i);\n");
+        out.append("   binding.setProperty(as+\"_isLast\", i==size);\n");
+        out.append("   binding.setProperty(as+\"_isFirst\", i==1);\n");
+        out.append("   binding.setProperty(as+\"_parity\", (i%2==0?\"even\":\"odd\"));\n");
+
+        // call list tag content
+        out.append("   "+contentMethodName+"();\n");
+
+        out.append(" }\n");
+    }
+
+    public void tag_set(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
         String contentVariableName = "content";
         generateContentOutputCapturing(contentMethodName, contentVariableName, out);
