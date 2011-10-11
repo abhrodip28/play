@@ -6,8 +6,6 @@ import play.libs.IO;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,9 +13,14 @@ public class GTCompiler {
 
     private int nextMethodIndex = 0;
 
+    private GTInternalTagsCompiler gtInternalTagsCompiler = new GTInternalTagsCompiler();
+
     public static class SourceContext {
         public final File file;
+        // generated java code
+        // generated groovy code
         public StringBuilder out = new StringBuilder();
+        public StringBuilder gout = new StringBuilder();
         public String[] lines;
         public int currentLine;
         public int lineOffset;
@@ -27,7 +30,26 @@ public class GTCompiler {
         }
     }
 
-    public String compile(File file) {
+    public static class Output {
+        public final String javaCode;
+        public final String groovyCode;
+
+        public Output(String javaCode, String groovyCode) {
+            this.javaCode = javaCode;
+            this.groovyCode = groovyCode;
+        }
+
+        @Override
+        public String toString() {
+            return "Output[->\n" +
+                    "javaCode=\n" + javaCode + '\n' +
+                    "--------------\n" +
+                    "groovyCode=\n" + groovyCode + '\n' +
+                    "<-]";
+        }
+    }
+
+    public Output compile(File file) {
 
         String src = IO.readContentAsString( file );
         String[] lines = src.split("\\n");
@@ -39,29 +61,47 @@ public class GTCompiler {
 
         List<GTFragment> rootFragments = new ArrayList<GTFragment>();
 
+        String templateClassName = generateTemplateClassname( file );
+        String templateClassNameGroovy = templateClassName + "G";
+
+        StringBuilder gout = sc.gout;
+
+        // generate groovy class
+        gout.append("class " + templateClassNameGroovy + " {\n");
+
         StringBuilder out = sc.out;
 
+        // generate java class
         out.append("package play.template2.generated_templates\n");
-        String templateClassName = generateTemplateClassname( file );
-        out.append("public class " + templateClassName + "{\n");
+
+        out.append("import java.util.*;\n");
+
+        out.append("public class " + templateClassName + " extends play.template2.GTBase {\n");
+
+        // add templateClassNameGroovy-instance
+        out.append( "private final "+templateClassNameGroovy+ " g = new "+templateClassNameGroovy+"();\n");
 
 
         while ( (fragment = processNextFragment(sc)) != null ) {
             rootFragments.add( fragment );
         }
 
-        GTFragmentMethodCall mainContentMethod = generateTagCode( "main", sc, rootFragments);
+        GTFragmentMethodCall mainContentMethod = generateTagCode( "main", null, sc, rootFragments);
 
+        // end of java class
         out.append( "public void main() {\n");
         out.append( "  "+mainContentMethod.methodName+"();\n" );
         out.append("}\n");
         out.append("}\n");
 
-        return out.toString();
+        // end of groovy class
+        gout.append("}\n");
+
+        return new Output(out.toString(), gout.toString());
     }
 
     private String generateTemplateClassname(File file) {
-        return "Template2_"+file.getAbsolutePath().replaceAll(":","D_").replaceAll("/", "_").replaceAll("\\\\","_").replaceAll("\\.", "_");
+        return "Template2_"+file.getAbsolutePath().replaceAll(":", "D_").replaceAll("/", "_").replaceAll("\\\\","_").replaceAll("\\.", "_").replaceAll("-", "_");
     }
 
     public static class GTFragment {
@@ -168,7 +208,7 @@ public class GTCompiler {
         String oneLiner = sb.toString().replace("\\", "\\\\").replaceAll("\"", "\\\\\"").replaceAll("\r\n", "\n").replaceAll("\n", "\\\\n");
 
         if ( oneLiner.length() > 0) {
-            return new GTFragmentCode("out.print(\""+oneLiner+"\");");
+            return new GTFragmentCode("out.append(\""+oneLiner+"\");");
         } else {
             return new GTFragmentCode("");
         }
@@ -179,43 +219,82 @@ public class GTCompiler {
         final List<GTFragment> body = new ArrayList<GTFragment>();
 
         if ( tagWithoutBody) {
-            return generateTagCode(tagName, sc, body);
+            return generateTagCode(tagName, tagArgString, sc, body);
         }
+
+        int startLine = sc.currentLine;
 
         GTFragment nextFragment = null;
         while ( (nextFragment = processNextFragment( sc )) != null ) {
             if ( nextFragment instanceof GTFragmentEndOfMultiLineTag) {
                 GTFragmentEndOfMultiLineTag f = (GTFragmentEndOfMultiLineTag)nextFragment;
                 if (f.tagName.equals(tagName)) {
-                    return generateTagCode(tagName, sc, body);
+                    return generateTagCode(tagName, tagArgString, sc, body);
                 } else {
-                    throw new GTCompilerException("Expected #{/"+tagName+"} but found #{/"+f.tagName+"} at line "+sc.currentLine+1, sc.file, sc.currentLine);
+                    throw new GTCompilerException("Found unclosed tag '"+tagName+"' used at line "+(startLine+1), sc.file, startLine+1);
                 }
             } else {
                 body.add(nextFragment);
             }
         }
 
-        throw new GTCompilerException("Expected #{/"+tagName+"} but found EOF", sc.file, sc.currentLine-1);
+        throw new GTCompilerException("Found unclosed tag '"+tagName+"' used at line "+(startLine+1), sc.file, startLine+1);
+    }
+
+    // Generates a method in the templates groovy-class which, when called, returns the args-map.
+    // returns the java code needed to execute and return the data
+    private String generateGroovyCodeForTagArgs(SourceContext sc, String tagName, String tagArgString) {
+
+        if ( tagArgString == null || tagArgString.trim().length() == 0) {
+            // just generate code that creates empty map
+            return " Map tagArgs = new HashMap();\n";
+        }
+
+        if (!tagArgString.matches("^[_a-zA-Z0-9]+\\s*:.*$")) {
+            tagArgString = "arg:" + tagArgString;
+        }
+        StringBuilder gout = sc.gout;
+        String methodName = "args_"+tagName;
+        gout.append("Map<String, Object> "+methodName+"() {\n");
+        gout.append(" return ["+tagArgString+"];\n");
+        gout.append( "}\n");
+
+        // must return the javacode needed to get the data
+        return " Map tagArgs = (Map)g."+methodName+"();\n";
     }
 
     private String generateMethodName(String hint) {
         return "m_" + hint + "_" + (nextMethodIndex++);
     }
 
-    private GTFragmentMethodCall generateTagCode(String tagName, SourceContext sc, List<GTFragment> body) {
+
+
+    private GTFragmentMethodCall generateTagCode(String tagName, String tagArgString, SourceContext sc, List<GTFragment> body) {
+
+        // generate groovy code for tag-args
+        String javaCodeToGetRefToArgs = generateGroovyCodeForTagArgs( sc, tagName, tagArgString);
+
+
         String methodName = generateMethodName(tagName);
         String contentMethodName = methodName+"_content";
 
         // generate method that runs the content..
         generateCodeForGTFragments( sc, body, contentMethodName);
 
-        // TODO: Must reolve the tag impl here..
 
         StringBuilder out = sc.out;
-        out.append("public void "+methodName+"()\n");
-        out.append("  " + contentMethodName+"();\n");
-        out.append("}");
+        out.append("public void "+methodName+"() {\n");
+
+        // add tag args code
+        out.append(javaCodeToGetRefToArgs);
+
+        if ( !gtInternalTagsCompiler.generateCodeForGTFragments(tagName, tagArgString, contentMethodName, sc)) {
+            // Tag was not an internal tag - must resolve it diferently
+            //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
+            out.append("//TODO: Missing tag impl.\n");
+        }
+
+        out.append("}\n");
 
         return new GTFragmentMethodCall(methodName);
     }
