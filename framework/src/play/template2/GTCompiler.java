@@ -60,6 +60,7 @@ public class GTCompiler {
         CL cl = new CL(parentClassloader, precompiled.groovyClassName, groovyClassBytes);
 
         // compile the java code
+        System.out.println(precompiled.javaCode);
         byte[] javaClassBytes = new GTJavaCompileToClass(cl).compile( precompiled.javaClassName, precompiled.javaCode);
 
         return new CompiledTemplate(precompiled.javaClassName, javaClassBytes, precompiled.groovyClassName, groovyClassBytes);

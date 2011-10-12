@@ -120,6 +120,27 @@ public class GTInternalTagsCompiler {
         out.append(" }\n");
     }
 
+    public void tag_extends(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+
+        // the template we extends is the single argument named 'args'
+        out.append(" this.extendsTemplatePath = (String)tagArgs.get(\"arg\");\n");
+
+        // that's it..
+    }
+
+    public void tag_doLayout(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+
+        // someone is extending us - and we are supposed to dump the output now..
+        out.append(" if( this.extendingTemplate == null) throw new RuntimeException(\"No template is currently extending this template\");\n");
+        // inject all the output from the extending template into our output stream
+        out.append(" this.insertOutput(this.extendingTemplate);\n");
+
+        // done..
+
+    }
+
 
     protected void generateContentOutputCapturing( String contentMethodName, String outputVariableName, StringBuilder out) {
         out.append("//generateContentOutputCapturing\n");

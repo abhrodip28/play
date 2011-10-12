@@ -210,7 +210,7 @@ public class GTPreCompiler {
         final Pattern partsP = Pattern.compile("([#\\$])\\{[^\\}]+\\}");
 
         // pattern that finds all kinds of tags
-        final Pattern tagP = Pattern.compile("#\\{(/)?([\\d\\w_\\^\\}.-]+)(?:\\s+([^\\}]+)|\\s*)(/)?\\}");
+        final Pattern tagP = Pattern.compile("#\\{([^\\}]+)\\}");
 
         // pattern that finds a $ (value) with content/expression
         final Pattern valueP = Pattern.compile("\\$\\{([^\\}]+)\\}");
@@ -250,10 +250,29 @@ public class GTPreCompiler {
                     if (!m.find(correctOffset)) {
                         throw new RuntimeException("Where supposed to find the #tag here..");
                     }
-                    boolean endedTag = m.group(1)!=null;
-                    String tagName = m.group(2);
-                    String tagArgString = m.group(3);
-                    boolean tagWithoutBody = m.group(4)!=null;
+
+                    String tagBody = m.group(1);
+                    boolean endedTag = tagBody.startsWith("/");
+                    if ( endedTag) {
+                        tagBody = tagBody.substring(1);
+                    }
+                    boolean tagWithoutBody = tagBody.endsWith("/");
+                    if ( tagWithoutBody) {
+                        tagBody = tagBody.substring(0,tagBody.length()-1);
+                    }
+                    // split tag name and optional params
+
+                    final Pattern tagBodyP = Pattern.compile("([^\\s]+)(?:$|\\s+(.+))");
+
+                    m = tagBodyP.matcher(tagBody);
+                    if (!m.find()) {
+                        throw new RuntimeException("Not supposed to happen");
+                    }
+                    String tagName = m.group(1);
+                    String tagArgString = m.group(2);
+                    if (tagArgString == null) {
+                        tagArgString = "";
+                    }
 
                     if ( endedTag ) {
                         return new GTFragmentEndOfMultiLineTag(tagName);
@@ -473,7 +492,7 @@ public class GTPreCompiler {
                     out.append("  " + c.code + "\n");
                 }
             } else {
-                throw new GTCompilerException("Unknown GTFragment-type", sc.file, sc.currentLine);
+                throw new GTCompilerException("Unknown GTFragment-type " + f, sc.file, sc.currentLine);
             }
         }
 
