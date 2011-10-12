@@ -1,7 +1,6 @@
 package play.template2;
 
 import org.junit.Test;
-import play.template2.tmp.Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -27,22 +26,13 @@ public class GTPreCompilerTest {
         args.put("myList", myList);
         //args.put("item", new Integer(10));
 
-        Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html(args);
-
-        t.renderTemplate();
-        t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html(args);
-        t.renderTemplate();
-
-        t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html(args);
-
-
         long start = System.currentTimeMillis();
-        t.renderTemplate();
+//        t.renderTemplate();
         long now = System.currentTimeMillis();
         long diff = now-start;
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        t.writeOutput(out, "utf-8");
+  //      t.writeOutput(out, "utf-8");
         System.out.println(new String(out.toByteArray(), "utf-8"));
 
         System.out.println("\n***> mills: " + diff);

@@ -106,7 +106,7 @@ public class GTPreCompiler {
 
 
     public Output compile(File file) {
-        String src = readContentAsString( file );
+        String src = readContentAsString(file);
         return compile(src, file);
     }
 
@@ -146,19 +146,21 @@ public class GTPreCompiler {
 
         out.append("public class " + templateClassName + " extends play.template2.GTJavaBase {\n");
 
-        out.append(" private final "+templateClassNameGroovy+" g;\n");
+        out.append(" private "+templateClassNameGroovy+" g;\n");
 
         // add constructor which initializes the templateClassNameGroovy-instance
-        out.append(" public "+templateClassName+"(Map<String,Object> args) {\n");
-        out.append("  super("+templateClassNameGroovy+".class, args);\n");
-        out.append("  this.g = ("+templateClassNameGroovy+")groovyScript;\n");
+        out.append(" public "+templateClassName+"() {\n");
+        out.append("  super("+templateClassNameGroovy+".class);\n");
         out.append(" }\n");
+
+        rootFragments.add( new GTFragmentCode("  this.g = ("+templateClassNameGroovy+")groovyScript;\n"));
 
         while ( (fragment = processNextFragment(sc)) != null ) {
             rootFragments.add( fragment );
         }
 
-        generateCodeForGTFragments(sc, rootFragments, "renderTemplate");
+
+        generateCodeForGTFragments(sc, rootFragments, "_renderTemplate");
 
         // end of java class
         out.append("}\n");

@@ -27,18 +27,18 @@ public abstract class GTJavaBase {
     protected List<StringWriter> allOuts = new ArrayList<StringWriter>();
 
     protected Script groovyScript = null;
-    protected final Binding binding;
+    protected Binding binding;
+    private final Class<? extends GTGroovyBase> groovyClass;
 
     // TagLevelID - when the runtime enters a new "tag-level" (Think: indent),it sets a unique value to
     // this variable. When the runtime leaves this level, it restores the previous value.
     // TagLevelID can therefor be used as a key when you need to store info between tags in same level - eg: if/else/elseif etc
     protected int tlid = -1;
 
-    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, Map<String, Object> args) {
-        this.binding = new Binding(args);
+    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass) {
+        this.groovyClass = groovyClass;
         initNewOut();
-        // must init our groovy script
-        groovyScript = InvokerHelper.createScript(groovyClass, binding);
+
     }
 
     public void writeOutput(OutputStream os, String encoding) {
@@ -62,6 +62,13 @@ public abstract class GTJavaBase {
         allOuts.add(out);
     }
 
-    public abstract void renderTemplate();
+    public void renderTemplate(Map<String, Object> args) {
+        this.binding = new Binding(args);
+        // must init our groovy script
+        groovyScript = InvokerHelper.createScript(groovyClass, binding);
+        _renderTemplate();
+    }
+
+    protected abstract void _renderTemplate();
     
 }
