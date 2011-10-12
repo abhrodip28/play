@@ -142,17 +142,25 @@ public class GTInternalTagsCompiler {
     }
 
 
-    protected void generateContentOutputCapturing( String contentMethodName, String outputVariableName, StringBuilder out) {
+    protected static void generateContentOutputCapturing( String contentMethodName, String outputVariableName, StringBuilder out) {
         out.append("//generateContentOutputCapturing\n");
         // remember the original out
-        out.append("StringBuilder org = out;\n");
+        out.append("StringWriter org = out;\n");
+        // remember the original list
+        out.append("List<StringWriter> orgAllOuts = allOuts;\n");
+
         // create a new one for capture
-        out.append("out = new StringBuilder();\n");
+        out.append("allOuts = new ArrayList<StringWriter>();\n");
+        out.append("initNewOut();\n");
+
         // call the content-method
         out.append(contentMethodName+"();\n");
         // store the output
-        out.append("String "+outputVariableName+" = out.toString();\n");
+        out.append("List<StringWriter> "+outputVariableName+" = allOuts;\n");
         // restore the original out
         out.append("out = org;\n");
+        // restore the list
+        out.append("allOuts = orgAllOuts;\n");
+
     }
 }

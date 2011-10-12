@@ -33,15 +33,15 @@ public class GTJavaCompileToClassTest {
 
         String name = "a.MyClass";
 
-        byte[] b = new GTJavaCompileToClass(getClass().getClassLoader()).compile(name, src);
+        //byte[] b = new GTJavaCompileToClass(getClass().getClassLoader()).compile(name, src);
 
-        CL cl = new CL(getClass().getClassLoader(), "a.MyClass", b);
+        //CL cl = new CL(getClass().getClassLoader(), "a.MyClass", b);
 
-        Class c = cl.loadClass("a.MyClass");
+        //Class c = cl.loadClass("a.MyClass");
 
-        Runnable r = (Runnable)c.newInstance();
+        //Runnable r = (Runnable)c.newInstance();
 
-        r.run();
+        //r.run();
 
         int a = 0;
     }

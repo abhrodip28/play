@@ -1,19 +1,6 @@
 package play.templates;
 
 import groovy.lang.Closure;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.lang.StringUtils;
 import play.cache.Cache;
 import play.data.validation.Error;
@@ -29,6 +16,19 @@ import play.mvc.Scope.Session;
 import play.templates.BaseTemplate.RawData;
 import play.templates.GroovyTemplate.ExecutableTemplate;
 import play.utils.HTML;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Fast tags implementation
@@ -249,6 +249,7 @@ public class FastTags {
         }
     }
 
+    // TODO : Mybe this can be used in new groovy template impl instead of groovy code
     static boolean _evaluateCondition(Object test) {
         if (test != null) {
             if (test instanceof Boolean) {

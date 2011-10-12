@@ -125,7 +125,7 @@ public class GTJavaCompileToClass {
          */
     public static class MyICompilerRequestor implements ICompilerRequestor {
 
-        public ClassFile resultClassFile;
+        public CompiledClass[] compiledClasses;
 
 
         public void acceptResult(CompilationResult result) {
@@ -144,15 +144,33 @@ public class GTJavaCompileToClass {
                 }
             }
             // Something has been compiled
+            compiledClasses = new CompiledClass[result.getClassFiles().length];
             ClassFile[] clazzFiles = result.getClassFiles();
+            for (int i = 0; i < clazzFiles.length; i++) {
+                final ClassFile clazzFile = clazzFiles[i];
+                final char[][] compoundName = clazzFile.getCompoundName();
+                final StringBuffer clazzName = new StringBuffer();
+                for (int j = 0; j < compoundName.length; j++) {
+                    if (j != 0) {
+                        clazzName.append('.');
+                    }
+                    clazzName.append(compoundName[j]);
+                }
 
-            if (clazzFiles.length != 1) {
-                throw new RuntimeException("When compiling our java source file it should only result in one class");
+                compiledClasses[i] = new CompiledClass(clazzName.toString(), clazzFile.getBytes());
             }
 
-            resultClassFile = clazzFiles[0];
+        }
+    }
 
 
+    public static class CompiledClass {
+        public final String classname;
+        public final byte[] bytes;
+
+        public CompiledClass(String classname, byte[] bytes) {
+            this.classname = classname;
+            this.bytes = bytes;
         }
     }
 
@@ -160,7 +178,7 @@ public class GTJavaCompileToClass {
      * Please compile this className
      */
     @SuppressWarnings("deprecation")
-    public byte[] compile(String className, String source) {
+    public CompiledClass[] compile(String className, String source) {
 
         ICompilationUnit compilationUnits = new CompilationUnit(className, source);
         IErrorHandlingPolicy policy = DefaultErrorHandlingPolicies.exitOnFirstError();
@@ -262,11 +280,8 @@ public class GTJavaCompileToClass {
 
         // Go !
         jdtCompiler.compile( new ICompilationUnit[]{compilationUnits});
-        
-        ClassFile cf = compilerRequestor.resultClassFile;
 
-
-        return cf.getBytes();
+        return compilerRequestor.compiledClasses;
 
     }
 }

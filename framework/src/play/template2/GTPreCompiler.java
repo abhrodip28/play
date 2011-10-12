@@ -143,6 +143,7 @@ public class GTPreCompiler {
         out.append("package "+generatedPackageName+";\n");
 
         out.append("import java.util.*;\n");
+        out.append("import java.io.*;\n");
 
         out.append("public class " + templateClassName + " extends play.template2.GTJavaBase {\n");
 
@@ -462,14 +463,41 @@ public class GTPreCompiler {
 
         if ( !gtInternalTagsCompiler.generateCodeForGTFragments(tagName, contentMethodName, sc)) {
             // Tag was not an internal tag - must resolve it diferently
-            //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
-            out.append("//TODO: Missing tag impl.\n");
+
+            // check internal fastTags
+            String fullnameToFastTagMethod = new GTInternalFastTags().resolveFastTag(tagName);
+            if ( fullnameToFastTagMethod != null) {
+                generateFastTagInvocation(sc, fullnameToFastTagMethod, contentMethodName);
+            } else {
+                //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
+                out.append("//TODO: Missing tag impl.\n");
+            }
+
         }
 
         out.append("}\n");
 
         return new GTFragmentMethodCall(methodName);
     }
+
+    private void generateFastTagInvocation(SourceContext sc, String fullnameToFastTagMethod, String contentMethodName) {
+        // must create an inline impl of GTContentRenderer which can render/call the contentMethod and grab the output
+        StringBuilder out = sc.out;
+        String contentRendererName = "cr_"+(sc.nextMethodIndex++);
+        out.append(" play.template2.GTContentRenderer " + contentMethodName + " = new play.template2.GTContentRenderer(){\n" +
+                "public play.template2.GTRenderingResult render(){\n");
+
+        // need to capture the output from the contentMethod
+        String outputVariableName = "ovn_" + (sc.nextMethodIndex++);
+        GTInternalTagsCompiler.generateContentOutputCapturing(contentMethodName, outputVariableName, out);
+        out.append( "return new play.template2.GTRenderingResult("+outputVariableName+");\n");
+        out.append(" }};\n");
+
+        // invoke the static fast-tag method
+        out.append(fullnameToFastTagMethod+"(this, tagArgs, "+contentMethodName+");\n");
+        
+    }
+
 
     private void generateCodeForGTFragments(SourceContext sc, List<GTFragment> body, String methodName) {
 

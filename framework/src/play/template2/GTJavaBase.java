@@ -7,15 +7,13 @@ import org.codehaus.groovy.runtime.InvokerHelper;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 
-public abstract class GTJavaBase {
+public abstract class GTJavaBase extends GTRenderingResult {
 
     // Used by the set-/get-tags
     protected Map<String, String> tag_set_get_store = new HashMap<String, String>();
@@ -25,7 +23,6 @@ public abstract class GTJavaBase {
     protected Set<Integer> runNextElse = new HashSet<Integer>();
 
     protected StringWriter out;
-    protected List<StringWriter> allOuts = new ArrayList<StringWriter>();
 
     protected Script groovyScript = null;
     protected Binding binding;
@@ -76,7 +73,7 @@ public abstract class GTJavaBase {
         }
     }
 
-    protected void insertOutput(GTJavaBase otherTemplate) {
+    protected void insertOutput(GTRenderingResult otherTemplate) {
         allOuts.addAll( otherTemplate.allOuts);
         initNewOut();
     }
@@ -86,7 +83,7 @@ public abstract class GTJavaBase {
         initNewOut();
     }
 
-    private void initNewOut() {
+    protected void initNewOut() {
         // must create new live out
         out = new StringWriter();
         allOuts.add(out);

@@ -3,6 +3,9 @@ package play.template2;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class GTCompiler {
 
@@ -36,16 +39,12 @@ public class GTCompiler {
     }
 
     public static class CompiledTemplate {
-        public final String javaClassName;
-        public final byte[] javaClassBytes;
-        public final String groovyClassName;
-        public final byte[] groovyClassBytes;
+        public final String templateClassName;
+        public final GTJavaCompileToClass.CompiledClass[] compiledJavaClasses;
 
-        public CompiledTemplate(String javaClassName, byte[] javaClassBytes, String groovyClassName, byte[] groovyClassBytes) {
-            this.javaClassName = javaClassName;
-            this.javaClassBytes = javaClassBytes;
-            this.groovyClassName = groovyClassName;
-            this.groovyClassBytes = groovyClassBytes;
+        public CompiledTemplate(String templateClassName, GTJavaCompileToClass.CompiledClass[] compiledJavaClasses) {
+            this.templateClassName = templateClassName;
+            this.compiledJavaClasses = compiledJavaClasses;
         }
     }
 
@@ -61,10 +60,13 @@ public class GTCompiler {
 
         // compile the java code
         System.out.println(precompiled.javaCode);
-        byte[] javaClassBytes = new GTJavaCompileToClass(cl).compile( precompiled.javaClassName, precompiled.javaCode);
+        GTJavaCompileToClass.CompiledClass[] compiledJavaClasses = new GTJavaCompileToClass(cl).compile(precompiled.javaClassName, precompiled.javaCode);
 
-        return new CompiledTemplate(precompiled.javaClassName, javaClassBytes, precompiled.groovyClassName, groovyClassBytes);
+        List<GTJavaCompileToClass.CompiledClass> allCompiledClasses = new ArrayList<GTJavaCompileToClass.CompiledClass>();
+        allCompiledClasses.addAll( Arrays.asList(compiledJavaClasses) );
+        allCompiledClasses.add( new GTJavaCompileToClass.CompiledClass(precompiled.groovyClassName, groovyClassBytes));
 
+        return new CompiledTemplate(precompiled.javaClassName, allCompiledClasses.toArray( new GTJavaCompileToClass.CompiledClass[]{}));
     }
 
 }

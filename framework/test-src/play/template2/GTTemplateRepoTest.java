@@ -50,5 +50,20 @@ public class GTTemplateRepoTest {
         
     }
 
+    @Test
+    public void test_using_fasttags() throws Exception {
+
+        Map<String, Object> args = new HashMap<String, Object>();
+
+        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true);
+
+        File templateFile = new File("test-src/play/template2/template_using_fasttags.html");
+        String templatePath = templateFile.getCanonicalPath();
+
+        GTJavaBase t = repo.getTemplateInstance( templatePath);
+        t.renderTemplate(args);
+        t.writeOutput( System.out, "utf-8");
+
+    }
 
 }
