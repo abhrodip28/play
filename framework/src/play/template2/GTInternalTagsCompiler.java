@@ -65,6 +65,62 @@ public class GTInternalTagsCompiler {
 
     }
 
+
+    public void tag_if(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+
+        // extract the argument named "arg"
+        out.append(" Object e = tagArgs.get(\"arg\");\n");
+        // evaluate it to boolean
+        out.append(" Boolean b = g.ifChecker(e);\n");
+
+        // clear the runNextElse
+        out.append(" runNextElse.remove(tlid);\n");
+        // do the if
+        out.append(" if(b) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
+    }
+
+    public void tag_ifnot(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+
+        // extract the argument named "arg"
+        out.append(" Object e = tagArgs.get(\"arg\");\n");
+        // evaluate it to boolean
+        out.append(" Boolean b = g.ifChecker(e);\n");
+
+        // clear the runNextElse
+        out.append(" runNextElse.remove(tlid);\n");
+        // do the if
+        out.append(" if(!b) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
+    }
+
+    public void tag_else(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+
+        // run the else if runNextElse is true
+
+        // do the if
+        out.append(" if( runNextElse.contains(tlid)) {"+contentMethodName+"();}\n");
+
+        // clear runNextElse
+        out.append(" runNextElse.remove(tlid);\n");
+    }
+
+    public void tag_elseif(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+
+        // run the elseif if runNextElse is true AND expression is true
+
+        // do the if
+        out.append(" if( runNextElse.contains(tlid)) {\n");
+
+        // Just include the regluar if-tag here..
+        tag_if(tagName, contentMethodName, sc);
+
+        out.append(" }\n");
+    }
+
+
     protected void generateContentOutputCapturing( String contentMethodName, String outputVariableName, StringBuilder out) {
         out.append("//generateContentOutputCapturing\n");
         // remember the original out

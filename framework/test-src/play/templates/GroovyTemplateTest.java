@@ -3,13 +3,129 @@ package play.templates;
 import org.junit.Test;
 import play.PlayBuilder;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 public class GroovyTemplateTest {
+
+    @Test
+    public void runit() {
+
+        new PlayBuilder().build();
+
+        String groovySrc = "#{list items: myList, as: 'item'}\n" +
+                "    a${item}\n" +
+                "    b${item}\n" +
+                "    c${item}\n" +
+                "    d${item}\n" +
+                "    e${item}\n" +
+                "    f${item}\n" +
+                "    g${item}\n" +
+                "    h${item}\n" +
+                "    i${item}\n" +
+                "    a${item}\n" +
+                "    b${item}\n" +
+                "    c${item}\n" +
+                "    d${item}\n" +
+                "    e${item}\n" +
+                "    f${item}\n" +
+                "    g${item}\n" +
+                "    h${item}\n" +
+                "    i${item}\n" +
+                "#{/list}\n" +
+                "Second go\n" +
+                "#{list items: myList, as: 'item2'}\n" +
+                "    a${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    b${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    c${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    d${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    e${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    f${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    g${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    h${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    i${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    a${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    b${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    c${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    d${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    e${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    f${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    g${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    h${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    i${item2} - ${item2_index} - ${item2_parity}\n" +
+                "#{/list}\n" +
+                "third go\n" +
+                "#{list items: myList, as: 'item'}\n" +
+                "    a${item}\n" +
+                "    b${item}\n" +
+                "    c${item}\n" +
+                "    d${item}\n" +
+                "    e${item}\n" +
+                "    f${item}\n" +
+                "    g${item}\n" +
+                "    h${item}\n" +
+                "    i${item}\n" +
+                "    a${item}\n" +
+                "    b${item}\n" +
+                "    c${item}\n" +
+                "    d${item}\n" +
+                "    e${item}\n" +
+                "    f${item}\n" +
+                "    g${item}\n" +
+                "    h${item}\n" +
+                "    i${item}\n" +
+                "#{/list}\n" +
+                "forth go\n" +
+                "#{list items: myList, as: 'item2'}\n" +
+                "    a${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    b${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    c${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    d${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    e${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    f${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    g${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    h${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    i${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    a${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    b${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    c${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    d${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    e${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    f${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    g${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    h${item2} - ${item2_index} - ${item2_parity}\n" +
+                "    i${item2} - ${item2_index} - ${item2_parity}\n" +
+                "#{/list}";
+
+        GroovyTemplate t = new GroovyTemplate("Template_123", groovySrc);
+        new GroovyTemplateCompiler().compile(t);
+
+
+        List<Integer> myList = new ArrayList<Integer>();
+        for (int i=0;i<1;i++) {
+            myList.add(i);
+        }
+
+        Map<String, Object> args = new HashMap<String,Object>();
+        args.put("myList", myList);
+
+        String out = t.render( args );
+        out = t.render( args );
+        out = t.render( args );
+        long start = System.currentTimeMillis();
+        out = t.render( args );
+        long now = System.currentTimeMillis();
+        long diff = now-start;
+        System.out.println("mills: " + diff);
+
+        //System.out.println(out);
+
+    }
 
     @Test
     public void verifyRenderingTwice() {

@@ -5,7 +5,7 @@ import play.template2.tmp.Template2__Users_mortenkjetland_tmp_mbkplay_play_frame
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,15 +19,33 @@ public class GTCompilerTest {
 
         Map<String, Object> args = new HashMap<String, Object>();
 
-        List<Integer> myList = Arrays.asList(1,2,3,4,5);
+        List<Integer> myList = new ArrayList<Integer>();
+        for (int i=0;i<1;i++) {
+            myList.add(i);
+        }
 
         args.put("myList", myList);
+        //args.put("item", new Integer(10));
 
         Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html(args);
-        t.main();
+
+        t.renderTemplate();
+        t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html(args);
+        t.renderTemplate();
+
+        t = new Template2__Users_mortenkjetland_tmp_mbkplay_play_framework_test_src_play_template2_template_using_list_html(args);
+
+
+        long start = System.currentTimeMillis();
+        t.renderTemplate();
+        long now = System.currentTimeMillis();
+        long diff = now-start;
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         t.writeOutput(out, "utf-8");
         System.out.println(new String(out.toByteArray(), "utf-8"));
+
+        System.out.println("\n***> mills: " + diff);
     }
 
     @Test
@@ -84,6 +102,14 @@ public class GTCompilerTest {
     @Test
     public void testCompile_list() throws Exception {
         File file = new File("test-src/play/template2/template_using_list.html");
+        assertThat(file.exists()).isTrue();
+        GTCompiler.Output out = new GTCompiler().compile(file);
+        printOutput( file, out);
+    }
+
+    @Test
+    public void testCompile_ifs() throws Exception {
+        File file = new File("test-src/play/template2/template_ifs.html");
         assertThat(file.exists()).isTrue();
         GTCompiler.Output out = new GTCompiler().compile(file);
         printOutput( file, out);

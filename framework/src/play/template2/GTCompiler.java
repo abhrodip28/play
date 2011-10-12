@@ -5,15 +5,20 @@ import play.libs.IO;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GTCompiler {
 
-    private int nextMethodIndex = 0;
-
     private GTInternalTagsCompiler gtInternalTagsCompiler = new GTInternalTagsCompiler();
+
+    private Map<String, String> expression2GroovyMethodLookup = new HashMap<String, String>();
+    private Map<String, String> tagArgs2GroovyMethodLookup = new HashMap<String, String>();
+
+    private final String varName = "ev";
 
     public static class SourceContext {
         public final File file;
@@ -24,6 +29,7 @@ public class GTCompiler {
         public String[] lines;
         public int currentLine;
         public int lineOffset;
+        public int nextMethodIndex = 0;
 
         public SourceContext(File file) {
             this.file = file;
@@ -69,6 +75,12 @@ public class GTCompiler {
         // generate groovy class
         gout.append("class " + templateClassNameGroovy + " extends play.template2.GTGroovyBase {\n");
 
+        // we always need a specical if-check-method that returns true if an object evaluates to true in groovy
+        gout.append(" Boolean ifChecker(Object e) {\n");
+        gout.append("  if(e) {return true;} else {return false;}\n");
+        gout.append(" }\n");
+
+
         StringBuilder out = sc.out;
 
         // generate java class
@@ -78,21 +90,21 @@ public class GTCompiler {
 
         out.append("public class " + templateClassName + " extends play.template2.GTJavaBase {\n");
 
+        out.append(" private final "+templateClassNameGroovy+" g;\n");
+
         // add constructor which initializes the templateClassNameGroovy-instance
         out.append(" public "+templateClassName+"(Map<String,Object> args) {\n");
         out.append("  super("+templateClassNameGroovy+".class, args);\n");
+        out.append("  this.g = ("+templateClassNameGroovy+")groovyScript;\n");
         out.append(" }\n");
 
         while ( (fragment = processNextFragment(sc)) != null ) {
             rootFragments.add( fragment );
         }
 
-        GTFragmentMethodCall mainContentMethod = generateTagCode( "main", null, sc, rootFragments);
+        generateCodeForGTFragments(sc, rootFragments, "renderTemplate");
 
         // end of java class
-        out.append( "public void main() {\n");
-        out.append( "  "+mainContentMethod.methodName+"();\n" );
-        out.append("}\n");
         out.append("}\n");
 
         // end of groovy class
@@ -136,21 +148,30 @@ public class GTCompiler {
     protected GTFragment processNextFragment( SourceContext sc) {
         // find next something..
 
-        final Pattern tagP = Pattern.compile("#\\{(/)?([\\d\\w_\\.-]+)(?:\\s+(.+)|\\s*)(/)?\\}");
+        // pattern that find any of the '#/$/& etc we're intercepting. it find the next one - so we know what to look for
+        final Pattern partsP = Pattern.compile("([#\\$])\\{[^\\}]+\\}");
+
+        // pattern that finds all kinds of tags
+        final Pattern tagP = Pattern.compile("#\\{(/)?([\\d\\w_\\^\\}.-]+)(?:\\s+([^\\}]+)|\\s*)(/)?\\}");
+
+        // pattern that finds a $ (value) with content/expression
+        final Pattern valueP = Pattern.compile("\\$\\{([^\\}]+)\\}");
 
         int startLine = sc.currentLine;
         int startOffset = sc.lineOffset;
 
         while ( sc.currentLine < sc.lines.length) {
-            Matcher m = tagP.matcher( sc.lines[sc.currentLine]);
 
-            if (m.find(sc.lineOffset)) {
+            String currentLine = sc.lines[sc.currentLine];
 
-                boolean endedTag = m.group(1)!=null;
-                String tagName = m.group(2);
-                String tagArgString = m.group(3);
-                boolean tagWithoutBody = m.group(4)!=null;
+            Matcher m = partsP.matcher(currentLine);
 
+            // do we have anything on this line?
+            if ( m.find(sc.lineOffset)) {
+
+                // yes we did find something
+
+                // must check for plain text first..
                 GTFragment plainText = checkForPlainText(sc, startLine, startOffset, m.start());
                 if ( plainText != null) {
                     return plainText;
@@ -158,13 +179,46 @@ public class GTCompiler {
 
                 sc.lineOffset = m.end();
 
-                if ( endedTag ) {
-                    return new GTFragmentEndOfMultiLineTag(tagName);
+                // what did we find?
+                int correctOffset = m.start();
+
+                String type = m.group(1);
+
+                if ("#".equals(type)) {
+                    // we found a tag - go' get it
+
+                    m = tagP.matcher( currentLine );
+
+                    if (!m.find(correctOffset)) {
+                        throw new RuntimeException("Where supposed to find the #tag here..");
+                    }
+                    boolean endedTag = m.group(1)!=null;
+                    String tagName = m.group(2);
+                    String tagArgString = m.group(3);
+                    boolean tagWithoutBody = m.group(4)!=null;
+
+                    if ( endedTag ) {
+                        return new GTFragmentEndOfMultiLineTag(tagName);
+                    }
+
+                    return processTag(sc, tagName, tagArgString, tagWithoutBody);
+
+                } else if ("$".equals(type)) {
+                    m = valueP.matcher(currentLine);
+                    if (!m.find(correctOffset)) {
+                        throw new RuntimeException("Where supposed to find the $value here..");
+                    }
+
+                    String expression = m.group(1).trim();
+
+                    return generateExpressionPrinter(expression, sc);
+
                 }
-
-                return processTag(sc, tagName, tagArgString, tagWithoutBody);
-
+                else {
+                    throw new RuntimeException("Don't know how to handle type '"+type+"'");
+                }
             } else {
+                // skip to next line
                 sc.currentLine++;
                 sc.lineOffset = 0;
             }
@@ -175,8 +229,33 @@ public class GTCompiler {
         return plainText;
     }
 
+    private GTFragmentCode generateExpressionPrinter(String expression, SourceContext sc) {
+
+        // check if we already have generated method for this expression
+        String methodName = expression2GroovyMethodLookup.get(expression);
+
+        if ( methodName == null ) {
+
+            // generate the groovy method for retrieving the actual value
+
+            StringBuilder gout = sc.gout;
+            methodName = "expression_"+(sc.nextMethodIndex++);
+            gout.append("Object "+methodName+"() {\n");
+            gout.append(" return "+expression+";\n");
+            gout.append( "}\n");
+            
+            expression2GroovyMethodLookup.put(expression, methodName);
+        }
+
+        // return the java-code for retrieving and pringing the expression
+
+        String javaCode = varName+" = g."+methodName+"();\n" +
+                "if ("+varName+"!=null) out.append("+varName+".toString());\n";
+        return new GTFragmentCode(javaCode);
+    }
+
     private GTFragment checkForPlainText(SourceContext sc, int startLine, int startOffset, int endOfLastLine) {
-        if (sc.currentLine == startLine && sc.lineOffset == startOffset) {
+        if (sc.currentLine == startLine && sc.lineOffset == startOffset && sc.lineOffset == endOfLastLine) {
             return null;
         }
 
@@ -187,6 +266,9 @@ public class GTCompiler {
             if (line == startLine) {
                 if ( startLine ==  sc.currentLine) {
                     sb.append(sc.lines[line].substring(startOffset, endOfLastLine));
+
+                    // must advance sc-offset
+                    sc.lineOffset = endOfLastLine;
                     // done
                     break;
                 } else {
@@ -211,7 +293,7 @@ public class GTCompiler {
         if ( oneLiner.length() > 0) {
             return new GTFragmentCode("out.append(\""+oneLiner+"\");");
         } else {
-            return new GTFragmentCode("");
+            return null;
         }
     }
 
@@ -251,21 +333,33 @@ public class GTCompiler {
             return " Map tagArgs = new HashMap();\n";
         }
 
-        if (!tagArgString.matches("^[_a-zA-Z0-9]+\\s*:.*$")) {
-            tagArgString = "arg:" + tagArgString;
+        tagArgString = tagArgString.trim();
+
+        // have we generated method for these args before?
+        String methodName = tagArgs2GroovyMethodLookup.get(tagArgString);
+
+        if (methodName==null) {
+
+            // first time - must generate it
+
+            if (!tagArgString.matches("^[_a-zA-Z0-9]+\\s*:.*$")) {
+                tagArgString = "arg:" + tagArgString;
+            }
+            StringBuilder gout = sc.gout;
+            methodName = "args_"+tagName + "_"+(sc.nextMethodIndex++);
+            gout.append("Map<String, Object> "+methodName+"() {\n");
+            gout.append(" return ["+tagArgString+"];\n");
+            gout.append( "}\n");
+
+            tagArgs2GroovyMethodLookup.put(tagArgString, methodName);
         }
-        StringBuilder gout = sc.gout;
-        String methodName = "args_"+tagName;
-        gout.append("Map<String, Object> "+methodName+"() {\n");
-        gout.append(" return ["+tagArgString+"];\n");
-        gout.append( "}\n");
 
         // must return the javacode needed to get the data
-        return " Map tagArgs = (Map)invokeGroovy(\""+methodName+"\");\n";
+        return " Map tagArgs = (Map)g."+methodName+"();\n";
     }
 
-    private String generateMethodName(String hint) {
-        return "m_" + hint + "_" + (nextMethodIndex++);
+    private String generateMethodName(String hint, SourceContext sc) {
+        return "m_" + hint + "_" + (sc.nextMethodIndex++);
     }
 
 
@@ -276,7 +370,7 @@ public class GTCompiler {
         String javaCodeToGetRefToArgs = generateGroovyCodeForTagArgs( sc, tagName, tagArgString);
 
 
-        String methodName = generateMethodName(tagName);
+        String methodName = generateMethodName(tagName, sc);
         String contentMethodName = methodName+"_content";
 
         // generate method that runs the content..
@@ -305,6 +399,12 @@ public class GTCompiler {
         StringBuilder out = sc.out;
 
         out.append("public void "+methodName+"() {\n");
+
+        // generate code to store old tlid and set new
+        out.append(" int org_tlid = this.tlid;\n");
+        out.append(" this.tlid = "+(sc.nextMethodIndex++)+";\n");
+
+        out.append(" Object "+varName+";\n");
         for ( GTFragment f : body) {
             if (f instanceof GTFragmentMethodCall) {
                 GTFragmentMethodCall m = (GTFragmentMethodCall)f;
@@ -318,6 +418,9 @@ public class GTCompiler {
                 throw new GTCompilerException("Unknown GTFragment-type", sc.file, sc.currentLine);
             }
         }
+
+        // restore the tlid
+        out.append(" this.tlid = org_tlid;\n");
         out.append("}\n");
 
     }
