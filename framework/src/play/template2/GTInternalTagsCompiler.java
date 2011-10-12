@@ -12,13 +12,13 @@ import java.lang.reflect.Method;
 public class GTInternalTagsCompiler {
 
 
-    public boolean generateCodeForGTFragments( String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+    public boolean generateCodeForGTFragments( String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
 
         // Check if we have a method named 'tag_tagName'
 
         Method tagMethod = null;
         try {
-            tagMethod = getClass().getMethod("tag_"+tagName, String.class, String.class, GTCompiler.SourceContext.class);
+            tagMethod = getClass().getMethod("tag_"+tagName, String.class, String.class, GTPreCompiler.SourceContext.class);
         } catch( Exception e) {
             // did not find a method to handle this tag
             return false;
@@ -33,7 +33,7 @@ public class GTInternalTagsCompiler {
         return true;
     }
 
-    public void tag_list(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+    public void tag_list(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
         out.append(" Collection items = (Collection)tagArgs.get(\"items\");\n");
         out.append(" String as = (String)tagArgs.get(\"as\");\n");
@@ -56,7 +56,7 @@ public class GTInternalTagsCompiler {
         out.append(" }\n");
     }
 
-    public void tag_set(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+    public void tag_set(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
         String contentVariableName = "content";
         generateContentOutputCapturing(contentMethodName, contentVariableName, out);
@@ -66,7 +66,7 @@ public class GTInternalTagsCompiler {
     }
 
 
-    public void tag_if(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+    public void tag_if(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
 
         // extract the argument named "arg"
@@ -80,7 +80,7 @@ public class GTInternalTagsCompiler {
         out.append(" if(b) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
     }
 
-    public void tag_ifnot(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+    public void tag_ifnot(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
 
         // extract the argument named "arg"
@@ -94,7 +94,7 @@ public class GTInternalTagsCompiler {
         out.append(" if(!b) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
     }
 
-    public void tag_else(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+    public void tag_else(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
 
         // run the else if runNextElse is true
@@ -106,7 +106,7 @@ public class GTInternalTagsCompiler {
         out.append(" runNextElse.remove(tlid);\n");
     }
 
-    public void tag_elseif(String tagName, String contentMethodName, GTCompiler.SourceContext sc) {
+    public void tag_elseif(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
 
         // run the elseif if runNextElse is true AND expression is true
