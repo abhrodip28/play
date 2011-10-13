@@ -1,6 +1,7 @@
 package play.template2.compile;
 
 import play.template2.GTFastTagResolver;
+import play.template2.legacy.GTLegacyFastTagResolver;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,6 +28,8 @@ public class GTPreCompiler {
     private Map<String, String> tagArgs2GroovyMethodLookup = new HashMap<String, String>();
 
     public GTFastTagResolver customFastTagResolver = null;
+
+    public static GTLegacyFastTagResolver legacyFastTagResolver = null;
 
     private final String varName = "ev";
 
@@ -472,8 +475,13 @@ public class GTPreCompiler {
                     generateFastTagInvocation(sc, fullnameToFastTagMethod, contentMethodName);
                 } else {
 
-                    //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
-                    out.append("//TODO: Missing tag impl.\n");
+                    // look for lecacy fastTags
+                    if ( legacyFastTagResolver != null && (fullnameToFastTagMethod = legacyFastTagResolver.resolveFastTag(tagName))!=null) {
+                        generateLegacyFastTagInvocation(tagName, sc, fullnameToFastTagMethod, contentMethodName);
+                    } else {
+                        //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
+                        out.append("//TODO: Missing tag impl.\n");
+                    }
                 }
             }
 
@@ -488,7 +496,7 @@ public class GTPreCompiler {
         // must create an inline impl of GTContentRenderer which can render/call the contentMethod and grab the output
         StringBuilder out = sc.out;
         String contentRendererName = "cr_"+(sc.nextMethodIndex++);
-        out.append(" play.template2.GTContentRenderer " + contentMethodName + " = new play.template2.GTContentRenderer(){\n" +
+        out.append(" play.template2.GTContentRenderer " + contentRendererName + " = new play.template2.GTContentRenderer(){\n" +
                 "public play.template2.GTRenderingResult render(){\n");
 
         // need to capture the output from the contentMethod
@@ -498,8 +506,30 @@ public class GTPreCompiler {
         out.append(" }};\n");
 
         // invoke the static fast-tag method
-        out.append(fullnameToFastTagMethod+"(this, tagArgs, "+contentMethodName+");\n");
+        out.append(fullnameToFastTagMethod+"(this, tagArgs, "+contentRendererName+");\n");
         
+    }
+
+    private void generateLegacyFastTagInvocation(String tagName, SourceContext sc, String fullnameToFastTagMethod, String contentMethodName) {
+        // must create an inline impl of GTContentRenderer which can render/call the contentMethod and grab the output
+        StringBuilder out = sc.out;
+        String contentRendererName = "cr_"+(sc.nextMethodIndex++);
+        out.append(" play.template2.GTContentRenderer " + contentRendererName + " = new play.template2.GTContentRenderer(){\n" +
+                "public play.template2.GTRenderingResult render(){\n");
+
+        // need to capture the output from the contentMethod
+        String outputVariableName = "ovn_" + (sc.nextMethodIndex++);
+        GTInternalTagsCompiler.generateContentOutputCapturing(contentMethodName, outputVariableName, out);
+        out.append( "return new play.template2.GTRenderingResult("+outputVariableName+");\n");
+        out.append(" }};\n");
+
+        // must wrap this lazy content-renderer in a fake Closure
+        String fakeClosureName = contentRendererName + "_fc";
+        out.append(" play.template2.legacy.GTContentRendererFakeClosure "+fakeClosureName+" = new play.template2.legacy.GTContentRendererFakeClosure(this, "+contentRendererName+");\n");
+
+        // invoke the static fast-tag method
+        out.append(fullnameToFastTagMethod+"(\""+tagName+"\", this, tagArgs, "+fakeClosureName+");\n");
+
     }
 
 

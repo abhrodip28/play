@@ -4,7 +4,6 @@ import groovy.lang.Binding;
 import groovy.lang.Script;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
 import java.util.Collection;
@@ -57,15 +56,6 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     }
 
-    public void writeOutput(OutputStream os, String encoding) {
-        for ( StringWriter s : allOuts) {
-            try {
-                os.write(s.getBuffer().toString().getBytes(encoding));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
 
     public void writeOutput(PrintStream ps, String encoding) {
         // if we have extended another template, we must pass this on to this template-instance,

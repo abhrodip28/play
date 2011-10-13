@@ -1,7 +1,9 @@
 package play.template2;
 
 import org.junit.Test;
+import play.template2.compile.GTPreCompiler;
 import play.templates.GTIntegration1X;
+import play.templates.GTLegacyFastTagResolver1X;
 
 import java.io.File;
 import java.util.Date;
@@ -59,6 +61,23 @@ public class GTTemplateRepoTest {
         GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
 
         File templateFile = new File("test-src/play/template2/template_using_fasttags.html");
+        String templatePath = templateFile.getCanonicalPath();
+
+        GTJavaBase t = repo.getTemplateInstance( templatePath);
+        t.renderTemplate(args);
+        t.writeOutput( System.out, "utf-8");
+
+    }
+
+    @Test
+    public void test_using_legacy_fasttags() throws Exception {
+
+        Map<String, Object> args = new HashMap<String, Object>();
+
+        GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
+        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+
+        File templateFile = new File("test-src/play/template2/template_using_legacy_fasttags.html");
         String templatePath = templateFile.getCanonicalPath();
 
         GTJavaBase t = repo.getTemplateInstance( templatePath);
