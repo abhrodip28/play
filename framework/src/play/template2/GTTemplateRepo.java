@@ -11,6 +11,8 @@ public class GTTemplateRepo {
 
     public static TemplateFileResolver templateFileResolver = new DefaultTemplateFileResolver();
 
+    public final GTIntegration integration;
+
     private Map<String, TemplateInfo> loadedTemplates = new HashMap<String, TemplateInfo>();
 
     public static interface TemplateFileResolver {
@@ -57,9 +59,16 @@ public class GTTemplateRepo {
     }
 
 
-    public GTTemplateRepo(ClassLoader parentClassLoader, boolean checkForChanges) {
+    public GTTemplateRepo(ClassLoader parentClassLoader, boolean checkForChanges, GTIntegration integration) {
         this.parentClassLoader = parentClassLoader;
+        if (parentClassLoader== null) {
+            throw new RuntimeException("parentClassLoader cannot be null");
+        }
         this.checkForChanges = checkForChanges;
+        this.integration = integration;
+        if (integration== null) {
+            throw new RuntimeException("integration cannot be null");
+        }
     }
 
 

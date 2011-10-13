@@ -151,7 +151,7 @@ public class GTPreCompiler {
 
         // add constructor which initializes the templateClassNameGroovy-instance
         out.append(" public "+templateClassName+"() {\n");
-        out.append("  super("+templateClassNameGroovy+".class);\n");
+        out.append("  super("+templateClassNameGroovy+".class, \""+sc.file.getAbsolutePath()+"\");\n");
         out.append(" }\n");
 
         rootFragments.add( new GTFragmentCode("  this.g = ("+templateClassNameGroovy+")groovyScript;\n"));
@@ -160,8 +160,7 @@ public class GTPreCompiler {
             rootFragments.add( fragment );
         }
 
-
-        generateCodeForGTFragments(sc, rootFragments, "_renderTemplate");
+        generateCodeForGTFragments(sc, rootFragments, "_renderTemplate", "_renderTemplate");
 
         // end of java class
         out.append("}\n");
@@ -328,7 +327,7 @@ public class GTPreCompiler {
         // return the java-code for retrieving and pringing the expression
 
         String javaCode = varName+" = g."+methodName+"();\n" +
-                "if ("+varName+"!=null) out.append("+varName+".toString());\n";
+                "if ("+varName+"!=null) out.append( objectToString("+varName+"));\n";
         return new GTFragmentCode(javaCode);
     }
 
@@ -452,7 +451,7 @@ public class GTPreCompiler {
         String contentMethodName = methodName+"_content";
 
         // generate method that runs the content..
-        generateCodeForGTFragments( sc, body, contentMethodName);
+        generateCodeForGTFragments( sc, body, contentMethodName, tagName);
 
 
         StringBuilder out = sc.out;
@@ -499,7 +498,7 @@ public class GTPreCompiler {
     }
 
 
-    private void generateCodeForGTFragments(SourceContext sc, List<GTFragment> body, String methodName) {
+    private void generateCodeForGTFragments(SourceContext sc, List<GTFragment> body, String methodName, String tagName) {
 
         StringBuilder out = sc.out;
 
@@ -508,6 +507,9 @@ public class GTPreCompiler {
         // generate code to store old tlid and set new
         out.append(" int org_tlid = this.tlid;\n");
         out.append(" this.tlid = "+(sc.nextMethodIndex++)+";\n");
+
+        // add current tag to list of parentTags
+        out.append(" this.enterTag(\""+tagName+"\");\n");
 
         out.append(" Object "+varName+";\n");
         for ( GTFragment f : body) {
@@ -524,6 +526,9 @@ public class GTPreCompiler {
             }
         }
 
+        // remove tag from parentTags-list
+        // add current tag to list of parentTags
+        out.append(" this.leaveTag(\""+tagName+"\");\n");
         // restore the tlid
         out.append(" this.tlid = org_tlid;\n");
         out.append("}\n");

@@ -1,6 +1,7 @@
 package play.template2;
 
 import org.junit.Test;
+import play.templates.GTIntegration1X;
 
 import java.io.File;
 import java.util.Date;
@@ -11,7 +12,7 @@ public class GTTemplateRepoTest {
     @Test
     public void testGetTemplateInstance() throws Exception {
 
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true);
+        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
 
         File templateFile = new File("test-src/play/template2/template_ifs.html");
         String templatePath = templateFile.getCanonicalPath();
@@ -39,7 +40,7 @@ public class GTTemplateRepoTest {
 
         Map<String, Object> args = new HashMap<String, Object>();
 
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true);
+        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
 
         File templateFile = new File("test-src/play/template2/template_using_extends.html");
         String templatePath = templateFile.getCanonicalPath();
@@ -55,7 +56,7 @@ public class GTTemplateRepoTest {
 
         Map<String, Object> args = new HashMap<String, Object>();
 
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true);
+        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
 
         File templateFile = new File("test-src/play/template2/template_using_fasttags.html");
         String templatePath = templateFile.getCanonicalPath();
