@@ -249,7 +249,6 @@ public class FastTags {
         }
     }
 
-    // TODO : Mybe this can be used in new groovy template impl instead of groovy code
     static boolean _evaluateCondition(Object test) {
         if (test != null) {
             if (test instanceof Boolean) {

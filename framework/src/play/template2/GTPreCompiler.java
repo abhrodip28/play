@@ -131,12 +131,6 @@ public class GTPreCompiler {
         gout.append("package "+generatedPackageName+";\n");
         gout.append("class " + templateClassNameGroovy + " extends play.template2.GTGroovyBase {\n");
 
-        // we always need a specical if-check-method that returns true if an object evaluates to true in groovy
-        gout.append(" Boolean ifChecker(Object e) {\n");
-        gout.append("  if(e) {return true;} else {return false;}\n");
-        gout.append(" }\n");
-
-
         StringBuilder out = sc.out;
 
         // generate java class

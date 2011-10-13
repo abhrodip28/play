@@ -71,13 +71,10 @@ public class GTInternalTagsCompiler {
 
         // extract the argument named "arg"
         out.append(" Object e = tagArgs.get(\"arg\");\n");
-        // evaluate it to boolean
-        out.append(" Boolean b = g.ifChecker(e);\n");
-
         // clear the runNextElse
         out.append(" runNextElse.remove(tlid);\n");
         // do the if
-        out.append(" if(b) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
+        out.append(" if(evaluateCondition(e)) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
     }
 
     public void tag_ifnot(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
@@ -85,13 +82,11 @@ public class GTInternalTagsCompiler {
 
         // extract the argument named "arg"
         out.append(" Object e = tagArgs.get(\"arg\");\n");
-        // evaluate it to boolean
-        out.append(" Boolean b = g.ifChecker(e);\n");
 
         // clear the runNextElse
         out.append(" runNextElse.remove(tlid);\n");
         // do the if
-        out.append(" if(!b) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
+        out.append(" if(!evaluateCondition(e)) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
     }
 
     public void tag_else(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
