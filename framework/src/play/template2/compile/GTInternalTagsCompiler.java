@@ -124,6 +124,7 @@ public class GTInternalTagsCompiler {
         // that's it..
     }
 
+    // used when dumping the output from the template that extended this one
     public void tag_doLayout(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
 
@@ -133,9 +134,19 @@ public class GTInternalTagsCompiler {
         out.append(" this.insertOutput(this.extendingTemplate);\n");
 
         // done..
-
     }
 
+    // used when dumping the content-output when rendering a tag-file / template
+    public void tag_doBody(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
+        StringBuilder out = sc.out;
+
+        // must make sure we actually have content to dump..
+        out.append(" if( this.contentRenderer == null) throw new RuntimeException(\"No body to dump - Are this template used as a tag?\");\n");
+        // render the content and inject all the output into our output stream
+        out.append(" this.insertOutput(this.contentRenderer.render());\n");
+
+        // done..
+    }
 
     protected static void generateContentOutputCapturing( String contentMethodName, String outputVariableName, StringBuilder out) {
         out.append("//generateContentOutputCapturing\n");

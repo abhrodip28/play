@@ -33,6 +33,9 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public GTJavaBase extendedTemplate = null;
     public GTJavaBase extendingTemplate = null; // if someone is extending us, this is the ref to their rendered template - used when dumping their output
 
+    // When invoking a template as a tag, the content of the tag / body is stored here..
+    public GTContentRenderer contentRenderer;
+
     protected GTTemplateRepo templateRepo;
 
     protected Class rawDataClass = null;
@@ -48,6 +51,9 @@ public abstract class GTJavaBase extends GTRenderingResult {
     protected Map<String, Integer> visitedTagNameCounter = new HashMap<String, Integer>();
 
     public final String templatePath;
+
+    // Can be used by fastTags to communicate between multiple tags..
+    public final Map<Object, Object> customData = new HashMap<Object, Object>();
 
     public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, String templatePath ) {
         this.groovyClass = groovyClass;
@@ -94,6 +100,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
         this.binding = new Binding(args);
         // must init our groovy script
         groovyScript = InvokerHelper.createScript(groovyClass, binding);
+
+        templateRepo.integration.renderingStarted();
         _renderTemplate();
 
         // check if "we" have extended an other template..
@@ -120,6 +128,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
             count++;
         }
         visitedTagNameCounter.put(tagName, count);
+        templateRepo.integration.enterTag(tagName);
     }
 
     protected void leaveTag( String tagName) {
@@ -128,6 +137,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
             count--;
         }
         visitedTagNameCounter.put(tagName, count);
+        templateRepo.integration.leaveTag();
     }
 
     public boolean hasParentTag(String tagName) {
@@ -168,6 +178,16 @@ public abstract class GTJavaBase extends GTRenderingResult {
             }
         }
         return false;
+    }
+
+    protected void invokeTagFile(String tagFilePath, GTContentRenderer contentRenderer, Map<String, Object> tagArgs) {
+        GTJavaBase tagTemplate = templateRepo.getTemplateInstance(tagFilePath);
+        // must set contentRenderes so that when the tag/template calls doBody, we can inject the output of the content of this tag
+        tagTemplate.contentRenderer = contentRenderer;
+        // render the tag
+        tagTemplate.renderTemplate(tagArgs);
+        //grab the output
+        insertOutput( tagTemplate );
     }
 
     

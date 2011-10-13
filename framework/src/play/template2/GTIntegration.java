@@ -20,4 +20,8 @@ public interface GTIntegration {
 
     public String escapeHTML( String s);
 
+    public void renderingStarted();
+    public void enterTag(String tagName);
+    public void leaveTag();
+
 }

@@ -1,5 +1,7 @@
 package play.template2.compile;
 
+import play.template2.GTTemplateRepo;
+
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -10,9 +12,11 @@ import java.util.List;
 public class GTCompiler {
 
     private final ClassLoader parentClassloader;
+    private final GTTemplateRepo templateRepo;
 
-    public GTCompiler(ClassLoader parentClassloader) {
+    public GTCompiler(ClassLoader parentClassloader, GTTemplateRepo templateRepo) {
         this.parentClassloader = parentClassloader;
+        this.templateRepo = templateRepo;
     }
 
     public static class CL extends ClassLoader {
@@ -50,7 +54,7 @@ public class GTCompiler {
 
     public CompiledTemplate compile( File templateFile ) {
         // precompile it
-        GTPreCompiler.Output precompiled = new GTPreCompiler().compile( templateFile);
+        GTPreCompiler.Output precompiled = new GTPreCompiler(templateRepo).compile( templateFile);
 
         // compile groovy
         byte[] groovyClassBytes = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( precompiled.groovyCode);

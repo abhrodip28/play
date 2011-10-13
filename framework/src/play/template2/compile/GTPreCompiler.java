@@ -1,6 +1,7 @@
 package play.template2.compile;
 
 import play.template2.GTFastTagResolver;
+import play.template2.GTTemplateRepo;
 import play.template2.legacy.GTLegacyFastTagResolver;
 
 import java.io.BufferedReader;
@@ -32,6 +33,8 @@ public class GTPreCompiler {
     public static GTLegacyFastTagResolver legacyFastTagResolver = null;
 
     private final String varName = "ev";
+
+    private final GTTemplateRepo templateRepo;
 
     public static class SourceContext {
         public final File file;
@@ -70,6 +73,10 @@ public class GTPreCompiler {
                     "groovyCode=\n" + groovyCode + '\n' +
                     "<-]";
         }
+    }
+
+    public GTPreCompiler(GTTemplateRepo templateRepo) {
+        this.templateRepo = templateRepo;
     }
 
     /**
@@ -479,8 +486,23 @@ public class GTPreCompiler {
                     if ( legacyFastTagResolver != null && (fullnameToFastTagMethod = legacyFastTagResolver.resolveFastTag(tagName))!=null) {
                         generateLegacyFastTagInvocation(tagName, sc, fullnameToFastTagMethod, contentMethodName);
                     } else {
-                        //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
-                        out.append("//TODO: Missing tag impl.\n");
+
+                        // look for tag-file
+                        String thisTemplateType = getTemplateType( sc );
+                        // look for tag-file with same type/extension as this template
+                        String tagFilePath = "tags/"+tagName + "."+thisTemplateType;
+                        if (templateRepo!= null && thisTemplateType != null && templateRepo.templateExists(tagFilePath)) {
+                            generateTagFileInvocation( tagFilePath, sc, contentMethodName);
+                        } else {
+                            // look for tag-file with .tag-extension
+                            tagFilePath = "tags/"+tagName + ".tag";
+                            if (templateRepo!= null && templateRepo.templateExists(tagFilePath)) {
+                                generateTagFileInvocation( tagFilePath, sc, contentMethodName);
+                            } else {
+                                // we give up
+                                throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1) + " in file " + sc.file, sc.file, sc.currentLine+1);
+                            }
+                        }
                     }
                 }
             }
@@ -490,6 +512,23 @@ public class GTPreCompiler {
         out.append("}\n");
 
         return new GTFragmentMethodCall(methodName);
+    }
+
+    // returns the type/file extension for this template (by looking at filename)
+    private String getTemplateType(SourceContext sc) {
+        File f = sc.file;
+        if ( f == null) {
+            return null;
+        }
+
+        String name = f.getName();
+        int i = name.lastIndexOf('.');
+        if ( i<0 ) {
+            return null;
+        }
+
+        return name.substring(i+1);
+
     }
 
     private void generateFastTagInvocation(SourceContext sc, String fullnameToFastTagMethod, String contentMethodName) {
@@ -529,6 +568,24 @@ public class GTPreCompiler {
 
         // invoke the static fast-tag method
         out.append(fullnameToFastTagMethod+"(\""+tagName+"\", this, tagArgs, "+fakeClosureName+");\n");
+
+    }
+
+    private void generateTagFileInvocation(String tagFilePath, SourceContext sc, String contentMethodName) {
+        // must create an inline impl of GTContentRenderer which can render/call the contentMethod and grab the output
+        StringBuilder out = sc.out;
+        String contentRendererName = "cr_"+(sc.nextMethodIndex++);
+        out.append(" play.template2.GTContentRenderer " + contentRendererName + " = new play.template2.GTContentRenderer(){\n" +
+                "public play.template2.GTRenderingResult render(){\n");
+
+        // need to capture the output from the contentMethod
+        String outputVariableName = "ovn_" + (sc.nextMethodIndex++);
+        GTInternalTagsCompiler.generateContentOutputCapturing(contentMethodName, outputVariableName, out);
+        out.append( "return new play.template2.GTRenderingResult("+outputVariableName+");\n");
+        out.append(" }};\n");
+
+        // generate the methodcall to invokeTagFile
+        out.append(" this.invokeTagFile(\""+tagFilePath+"\", "+contentRendererName+", tagArgs);\n");
 
     }
 

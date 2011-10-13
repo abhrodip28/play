@@ -11,23 +11,12 @@ public class GTTemplateRepo {
     public final ClassLoader parentClassLoader;
     public final boolean checkForChanges;
 
-    public static TemplateFileResolver templateFileResolver = new DefaultTemplateFileResolver();
+    public static GTTemplateFileResolver templateFileResolver = new GTDefaultTemplateFileResolver();
 
     public final GTIntegration integration;
 
     private Map<String, TemplateInfo> loadedTemplates = new HashMap<String, TemplateInfo>();
 
-    public static interface TemplateFileResolver {
-        public File resolveTemplatePathToFile(String templatePath);
-    }
-
-    public static class DefaultTemplateFileResolver implements TemplateFileResolver {
-
-        // Just maps it directly to file as is
-        public File resolveTemplatePathToFile(String templatePath) {
-            return new File(templatePath);
-        }
-    }
 
     private static class TemplateInfo {
         public final File file;
@@ -74,6 +63,15 @@ public class GTTemplateRepo {
     }
 
 
+    public boolean templateExists( String templatePath) {
+        File file = templateFileResolver.resolveTemplatePathToFile( templatePath);
+
+        if ( file == null || !file.exists() || !file.isFile() ) {
+            return false;
+        }
+        return true;
+    }
+
     public GTJavaBase getTemplateInstance( String templatePath) {
 
         // Is this a loaded template ?
@@ -97,12 +95,12 @@ public class GTTemplateRepo {
                         // Must map templatePath to File
                         File file = templateFileResolver.resolveTemplatePathToFile( templatePath);
 
-                        if ( !file.exists() || !file.isFile() ) {
-                            throw new RuntimeException("Cannot find template file " + templatePath + " (file: )" + file.getAbsolutePath());
+                        if ( file == null || !file.exists() || !file.isFile() ) {
+                            throw new RuntimeException("Cannot find template file " + templatePath);
                         }
 
                         // compile it
-                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader).compile(file);
+                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this).compile(file);
 
                         GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
 

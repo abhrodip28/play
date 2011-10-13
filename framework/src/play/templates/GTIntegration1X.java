@@ -24,4 +24,15 @@ public class GTIntegration1X implements GTIntegration
         return HTML.htmlEscape(s);
     }
 
+    public void renderingStarted() {
+        TagContext.init();
+    }
+
+    public void enterTag(String tagName) {
+        TagContext.enterTag(tagName);
+    }
+
+    public void leaveTag() {
+        TagContext.exitTag();
+    }
 }
