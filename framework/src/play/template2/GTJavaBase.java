@@ -23,7 +23,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
     // if tlid is present in set, then the else /elseif should run
     protected Set<Integer> runNextElse = new HashSet<Integer>();
 
-    protected StringWriter out;
+    public StringWriter out;
 
     protected Script groovyScript = null;
     protected Binding binding;
@@ -84,7 +84,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         }
     }
 
-    protected void insertOutput(GTRenderingResult otherTemplate) {
+    public void insertOutput(GTRenderingResult otherTemplate) {
         allOuts.addAll( otherTemplate.allOuts);
         initNewOut();
     }

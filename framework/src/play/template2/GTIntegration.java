@@ -19,4 +19,5 @@ public interface GTIntegration {
 
 
     public String escapeHTML( String s);
+
 }

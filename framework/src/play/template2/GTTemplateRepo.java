@@ -1,5 +1,7 @@
 package play.template2;
 
+import play.template2.compile.GTCompiler;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;

@@ -1,6 +1,7 @@
 package play.template2;
 
 import org.junit.Test;
+import play.template2.compile.GTCompiler;
 
 import java.io.File;
 

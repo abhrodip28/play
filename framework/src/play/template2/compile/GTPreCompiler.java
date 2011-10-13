@@ -1,4 +1,6 @@
-package play.template2;
+package play.template2.compile;
+
+import play.template2.GTFastTagResolver;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -23,6 +25,8 @@ public class GTPreCompiler {
 
     private Map<String, String> expression2GroovyMethodLookup = new HashMap<String, String>();
     private Map<String, String> tagArgs2GroovyMethodLookup = new HashMap<String, String>();
+
+    public GTFastTagResolver customFastTagResolver = null;
 
     private final String varName = "ev";
 
@@ -462,8 +466,15 @@ public class GTPreCompiler {
             if ( fullnameToFastTagMethod != null) {
                 generateFastTagInvocation(sc, fullnameToFastTagMethod, contentMethodName);
             } else {
-                //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
-                out.append("//TODO: Missing tag impl.\n");
+
+                // Check for custom fastTags
+                if (customFastTagResolver !=null && (fullnameToFastTagMethod = customFastTagResolver.resolveFastTag(tagName))!=null) {
+                    generateFastTagInvocation(sc, fullnameToFastTagMethod, contentMethodName);
+                } else {
+
+                    //throw new GTCompilerException("Cannot find tag-implementation for '"+tagName+"' used on line "+(sc.currentLine+1), sc.file, sc.currentLine+1);
+                    out.append("//TODO: Missing tag impl.\n");
+                }
             }
 
         }

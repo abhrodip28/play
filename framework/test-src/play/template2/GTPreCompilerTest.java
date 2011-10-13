@@ -1,6 +1,8 @@
 package play.template2;
 
 import org.junit.Test;
+import play.template2.compile.GTCompilerException;
+import play.template2.compile.GTPreCompiler;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

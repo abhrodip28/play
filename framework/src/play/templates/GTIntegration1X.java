@@ -23,4 +23,5 @@ public class GTIntegration1X implements GTIntegration
     public String escapeHTML(String s) {
         return HTML.htmlEscape(s);
     }
+
 }

@@ -1,4 +1,4 @@
-package play.template2;
+package play.template2.compile;
 
 import groovy.lang.GroovyClassLoader;
 import org.codehaus.groovy.control.CompilationUnit;

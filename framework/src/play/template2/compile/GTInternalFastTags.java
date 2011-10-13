@@ -1,4 +1,8 @@
-package play.template2;
+package play.template2.compile;
+
+import play.template2.GTContentRenderer;
+import play.template2.GTFastTagResolver;
+import play.template2.GTJavaBase;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;

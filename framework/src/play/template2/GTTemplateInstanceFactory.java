@@ -1,6 +1,9 @@
 package play.template2;
 
 
+import play.template2.compile.GTCompiler;
+import play.template2.compile.GTJavaCompileToClass;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
