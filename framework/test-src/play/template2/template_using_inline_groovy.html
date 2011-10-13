@@ -1,0 +1,8 @@
+hw%{
+        a = 10;
+}%
+between a:${a}%{
+        b = a + 1;
+        out.println("\nFrom script print a: " + a);
+}%
+after b: ${b}

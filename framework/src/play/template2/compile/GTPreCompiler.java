@@ -203,6 +203,14 @@ public class GTPreCompiler {
         }
     }
 
+    public static class GTFragmentScript extends GTFragment {
+        public final String scriptSource;
+
+        public GTFragmentScript(String scriptSource) {
+            this.scriptSource = scriptSource;
+        }
+    }
+
     public static class GTFragmentEndOfMultiLineTag extends GTFragment {
         public final String tagName;
 
@@ -211,24 +219,74 @@ public class GTPreCompiler {
         }
     }
 
+    // pattern that find any of the '#/$/& etc we're intercepting. it find the next one - so we know what to look for
+    // and start of comment and code-block
+    final static Pattern partsP = Pattern.compile("([#\\$])\\{[^\\}]+\\}|(\\*\\{)|(%\\{)");
+
+    // pattern that finds all kinds of tags
+    final static Pattern tagP = Pattern.compile("#\\{([^\\}]+)\\}");
+
+    final static Pattern endCommentP = Pattern.compile("\\}\\*");
+    final static Pattern endScriptP = Pattern.compile("\\}%");
+
+    // pattern that finds a $ (value) with content/expression
+    final static Pattern valueP = Pattern.compile("\\$\\{([^\\}]+)\\}");
+
     protected GTFragment processNextFragment( SourceContext sc) {
         // find next something..
 
-        // pattern that find any of the '#/$/& etc we're intercepting. it find the next one - so we know what to look for
-        final Pattern partsP = Pattern.compile("([#\\$])\\{[^\\}]+\\}");
-
-        // pattern that finds all kinds of tags
-        final Pattern tagP = Pattern.compile("#\\{([^\\}]+)\\}");
-
-        // pattern that finds a $ (value) with content/expression
-        final Pattern valueP = Pattern.compile("\\$\\{([^\\}]+)\\}");
-
         int startLine = sc.currentLine;
         int startOffset = sc.lineOffset;
+        boolean insideComment = false;
+        boolean insideScript = false;
+        int commentStartLine = 0;
+        int scriptStartLine = 0;
+        int scriptStartOffset = 0;
 
         while ( sc.currentLine < sc.lines.length) {
 
             String currentLine = sc.lines[sc.currentLine];
+
+            if ( insideComment) {
+                // can only look for end-comment
+                Matcher m = endCommentP.matcher(currentLine);
+                if (m.find(sc.lineOffset)) {
+                    // update offset to after comment
+                    sc.lineOffset = m.end();
+                    insideComment = false;
+                    // must update start-line and startOffset to prevent checkForPlainText() from grabbing the comment
+                    startLine = sc.currentLine;
+                    startOffset = sc.lineOffset;
+                } else {
+                    // skip to next line
+                    sc.currentLine++;
+                    sc.lineOffset = 0;
+                    continue;
+                }
+                continue;
+            } else if(insideScript) {
+                // we should only look for end-script
+                Matcher m = endScriptP.matcher(currentLine);
+                if (m.find(sc.lineOffset)) {
+                    // found the end of it.
+                    // return it as a Script-fragment
+
+                    // Use plainText-finder to extract our script
+                    String scriptPlainText = checkForPlainText(sc, scriptStartLine, scriptStartOffset, m.start());
+
+                    sc.lineOffset = m.end();
+
+                    if( scriptPlainText != null ) {
+                        return new GTFragmentScript( scriptPlainText );
+                    }
+                    
+                } else {
+                    // skip to next line
+                    sc.currentLine++;
+                    sc.lineOffset = 0;
+                    continue;
+                }
+            }
 
             Matcher m = partsP.matcher(currentLine);
 
@@ -238,9 +296,9 @@ public class GTPreCompiler {
                 // yes we did find something
 
                 // must check for plain text first..
-                GTFragment plainText = checkForPlainText(sc, startLine, startOffset, m.start());
+                String plainText = checkForPlainText(sc, startLine, startOffset, m.start());
                 if ( plainText != null) {
-                    return plainText;
+                    return createGTFragmentCodeForPlainText(plainText);
                 }
 
                 sc.lineOffset = m.end();
@@ -249,8 +307,19 @@ public class GTPreCompiler {
                 int correctOffset = m.start();
 
                 String type = m.group(1);
+                boolean commentStart = m.group(2) != null;
+                boolean scriptStart = m.group(3) != null;
 
-                if ("#".equals(type)) {
+                if (commentStart) {
+                    // just skipping it
+                    insideComment = true;
+                    commentStartLine = sc.currentLine;
+
+                } else if(scriptStart) {
+                    insideScript = true;
+                    scriptStartLine = sc.currentLine;
+                    scriptStartOffset = m.end();
+                } else if ("#".equals(type)) {
                     // we found a tag - go' get it
 
                     m = tagP.matcher( currentLine );
@@ -310,8 +379,20 @@ public class GTPreCompiler {
 
         }
 
-        GTFragment plainText = checkForPlainText(sc, startLine, startOffset, -1);
-        return plainText;
+        if (insideComment) {
+            throw new RuntimeException("Found unclosed comment starting on line " + commentStartLine);
+        }
+
+        if (insideScript) {
+            throw new RuntimeException("Found unclosed groovy script starting on line " + scriptStartLine);
+        }
+
+
+        String plainText = checkForPlainText(sc, startLine, startOffset, -1);
+        if (plainText != null) {
+            return createGTFragmentCodeForPlainText(plainText);
+        }
+        return null;
     }
 
     private GTFragmentCode generateExpressionPrinter(String expression, SourceContext sc) {
@@ -339,7 +420,21 @@ public class GTPreCompiler {
         return new GTFragmentCode(javaCode);
     }
 
-    private GTFragment checkForPlainText(SourceContext sc, int startLine, int startOffset, int endOfLastLine) {
+    private GTFragmentCode createGTFragmentCodeForPlainText(String plainText) {
+        if (plainText == null) {
+            return null;
+        }
+        
+        String oneLiner = plainText.replace("\\", "\\\\").replaceAll("\"", "\\\\\"").replaceAll("\r\n", "\n").replaceAll("\n", "\\\\n");
+
+        if ( oneLiner.length() > 0) {
+            return new GTFragmentCode("out.append(\""+oneLiner+"\");");
+        } else {
+            return null;
+        }
+    }
+
+    private String checkForPlainText(SourceContext sc, int startLine, int startOffset, int endOfLastLine) {
         if (sc.currentLine == startLine && sc.lineOffset == startOffset && sc.lineOffset == endOfLastLine) {
             return null;
         }
@@ -352,8 +447,6 @@ public class GTPreCompiler {
                 if ( startLine ==  sc.currentLine) {
                     sb.append(sc.lines[line].substring(startOffset, endOfLastLine));
 
-                    // must advance sc-offset
-                    sc.lineOffset = endOfLastLine;
                     // done
                     break;
                 } else {
@@ -373,13 +466,10 @@ public class GTPreCompiler {
             line++;
         }
 
-        String oneLiner = sb.toString().replace("\\", "\\\\").replaceAll("\"", "\\\\\"").replaceAll("\r\n", "\n").replaceAll("\n", "\\\\n");
+        // must advance sc-offset
+        sc.lineOffset = endOfLastLine;
 
-        if ( oneLiner.length() > 0) {
-            return new GTFragmentCode("out.append(\""+oneLiner+"\");");
-        } else {
-            return null;
-        }
+        return sb.toString();
     }
 
     protected GTFragment processTag( SourceContext sc, String tagName, String tagArgString, boolean tagWithoutBody) {
@@ -593,6 +683,7 @@ public class GTPreCompiler {
     private void generateCodeForGTFragments(SourceContext sc, List<GTFragment> body, String methodName, String tagName) {
 
         StringBuilder out = sc.out;
+        StringBuilder gout = sc.gout;
 
         out.append("public void "+methodName+"() {\n");
 
@@ -613,6 +704,17 @@ public class GTPreCompiler {
                 if ( c.code.length() > 0) {
                     out.append("  " + c.code + "\n");
                 }
+            } else if(f instanceof GTFragmentScript){
+                GTFragmentScript s = (GTFragmentScript)f;
+                // first generate groovy method with script code
+                String groovyMethodName = "custom_script_" + (sc.nextMethodIndex++);
+                gout.append(" void "+groovyMethodName+"(out){\n");
+                gout.append( s.scriptSource);
+                gout.append(" }\n");
+
+                // then generate call to that method from java
+                out.append(" g."+groovyMethodName+"(new PrintWriter(out));\n");
+
             } else {
                 throw new GTCompilerException("Unknown GTFragment-type " + f, sc.file, sc.currentLine);
             }

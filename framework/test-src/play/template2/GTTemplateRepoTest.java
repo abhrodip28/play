@@ -98,6 +98,24 @@ public class GTTemplateRepoTest {
 
         GTJavaBase t = repo.getTemplateInstance( "template_using_tag_file.html" );
         t.renderTemplate(args);
+        System.out.println("Render output:");
+        t.writeOutput( System.out, "utf-8");
+
+    }
+
+    @Test
+    public void test_using_inline_groovy() throws Exception {
+
+        Map<String, Object> args = new HashMap<String, Object>();
+
+        GTDefaultTemplateFileResolver.templateFolders = new File[]{new File("test-src/play/template2/")};
+
+        GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
+        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+
+        GTJavaBase t = repo.getTemplateInstance( "template_using_inline_groovy.html" );
+        t.renderTemplate(args);
+        System.out.println("Render output:");
         t.writeOutput( System.out, "utf-8");
 
     }
