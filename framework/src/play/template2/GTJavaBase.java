@@ -49,7 +49,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     // each time we enter a new tag, we inc the counter for that tag-name in this map.
     // when returning, we dec it.
-    // Can be used to check if specific parent tag is pressent
+    // Can be used to check if specific parent tag is present
     protected Map<String, Integer> visitedTagNameCounter = new HashMap<String, Integer>();
 
     public final String templatePath;
@@ -99,13 +99,28 @@ public abstract class GTJavaBase extends GTRenderingResult {
     }
 
     public void renderTemplate(Map<String, Object> args) {
+        renderTemplate(args, null);
+    }
+
+    // existingVisitedTagNameCounter must be the same used by the calling template if using template as tag
+    public void renderTemplate(Map<String, Object> args, Map<String, Integer> existingVisitedTagNameCounter) {
+
+        if ( existingVisitedTagNameCounter == null) {
+            this.visitedTagNameCounter = new HashMap<String, Integer>();
+        } else {
+            this.visitedTagNameCounter = existingVisitedTagNameCounter;
+        }
+
         // must store a copy of args, so we can pass the same (unchnaged) args to an extending template.
         this.orgArgs = new HashMap<String, Object>(args);
         this.binding = new Binding(args);
         // must init our groovy script
+
         groovyScript = InvokerHelper.createScript(groovyClass, binding);
 
-        templateRepo.integration.renderingStarted();
+        if ( existingVisitedTagNameCounter == null) {
+            templateRepo.integration.renderingStarted();
+        }
         _renderTemplate();
 
         // check if "we" have extended an other template..
@@ -155,6 +170,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     // We know that o is never null
     public String objectToString( Object o) {
+        //if (1==1)
+        //    return o.toString();
         if (rawDataClass==null) {
             rawDataClass = templateRepo.integration.getRawDataClass();
         }
@@ -191,8 +208,12 @@ public abstract class GTJavaBase extends GTRenderingResult {
         // render the tag
         // input should be everyting in this templates scope + the tag args
         Map<String, Object> completeTagArgs = new HashMap<String, Object>( this.binding.getVariables());
-        completeTagArgs.putAll( tagArgs);
-        tagTemplate.renderTemplate(completeTagArgs);
+
+        // must prefix all tag args with '_'
+        for ( String key : tagArgs.keySet()) {
+            completeTagArgs.put("_"+key, tagArgs.get(key));
+        }
+        tagTemplate.renderTemplate(completeTagArgs, this.visitedTagNameCounter);
         //grab the output
         insertOutput( tagTemplate );
     }

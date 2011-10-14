@@ -13,7 +13,11 @@ public class RenderTemplateGT extends Result {
 
     public RenderTemplateGT(GTJavaBase template, Map<String, Object> args) {
         this.template = template;
+        long start = System.currentTimeMillis();
         template.renderTemplate( args);
+        long end = System.currentTimeMillis();
+        long diff = end-start;
+        System.out.println("render time: " + diff + " mills");
     }
 
     public void apply(Http.Request request, Http.Response response) {

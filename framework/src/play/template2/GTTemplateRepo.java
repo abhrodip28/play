@@ -75,8 +75,8 @@ public class GTTemplateRepo {
     public GTJavaBase getTemplateInstance( String templatePath) {
 
         // Is this a loaded template ?
-        TemplateInfo ti = null;
-        if ( checkForChanges ) {
+        TemplateInfo ti = loadedTemplates.get(templatePath);
+        if ( ti == null || checkForChanges ) {
             synchronized(loadedTemplates) {
                 ti = loadedTemplates.get(templatePath);
                 if ( ti != null) {
@@ -116,8 +116,6 @@ public class GTTemplateRepo {
                 }
             }
         } else {
-            // Skip synchronized and modified-check - typically prod mode.
-            ti = loadedTemplates.get(templatePath);
             if ( ti == null) {
                 throw new RuntimeException("Unknown template " + templatePath);
             }

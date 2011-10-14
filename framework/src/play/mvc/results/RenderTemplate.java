@@ -1,12 +1,12 @@
 package play.mvc.results;
 
-import java.util.Map;
-
 import play.exceptions.UnexpectedException;
 import play.libs.MimeTypes;
 import play.mvc.Http.Request;
 import play.mvc.Http.Response;
 import play.templates.Template;
+
+import java.util.Map;
 
 /**
  * 200 OK with a template rendering
@@ -21,7 +21,11 @@ public class RenderTemplate extends Result {
         if (args.containsKey("out")) {
             throw new RuntimeException("Assertion failed! args shouldn't contain out");
         }
+        long start = System.currentTimeMillis();
         this.content = template.render(args);
+        long end = System.currentTimeMillis();
+        long diff = end-start;
+        System.out.println("render time: " + diff + " mills");
     }
 
     public void apply(Request request, Response response) {

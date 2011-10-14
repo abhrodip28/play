@@ -295,7 +295,7 @@ public class Play {
         // init GT-templates
         GT_init1x.initGTTemplateEngine(templatesPath);
 
-        templateRepo = new GTTemplateRepo( classloader,  true, new GTIntegration1X());
+        templateRepo = new GTTemplateRepo( classloader,  Play.mode == Mode.DEV, new GTIntegration1X());
 
 
         // Fix ctxPath
