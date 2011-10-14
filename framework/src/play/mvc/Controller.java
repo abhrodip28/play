@@ -1,23 +1,13 @@
 package play.mvc;
 
-import java.io.File;
-import java.io.InputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-import java.util.concurrent.Future;
-
+import com.google.gson.JsonSerializer;
+import com.thoughtworks.xstream.XStream;
+import org.apache.commons.javaflow.Continuation;
+import org.apache.commons.javaflow.bytecode.StackRecorder;
 import org.w3c.dom.Document;
-
 import play.Invoker.Suspend;
 import play.Logger;
 import play.Play;
-import play.classloading.ApplicationClasses;
 import play.classloading.enhancers.ContinuationEnhancer;
 import play.classloading.enhancers.ControllersEnhancer.ControllerInstrumentation;
 import play.classloading.enhancers.ControllersEnhancer.ControllerSupport;
@@ -27,7 +17,14 @@ import play.classloading.enhancers.LocalvariablesNamesEnhancer.LocalVariablesSup
 import play.data.binding.Unbinder;
 import play.data.validation.Validation;
 import play.data.validation.ValidationPlugin;
-import play.exceptions.*;
+import play.exceptions.ContinuationsException;
+import play.exceptions.NoRouteFoundException;
+import play.exceptions.PlayException;
+import play.exceptions.TemplateNotFoundException;
+import play.exceptions.UnexpectedException;
+import play.i18n.Lang;
+import play.i18n.Messages;
+import play.libs.F;
 import play.libs.Time;
 import play.mvc.Http.Request;
 import play.mvc.Router.ActionDefinition;
@@ -43,24 +40,30 @@ import play.mvc.results.RenderBinary;
 import play.mvc.results.RenderHtml;
 import play.mvc.results.RenderJson;
 import play.mvc.results.RenderTemplate;
+import play.mvc.results.RenderTemplateGT;
 import play.mvc.results.RenderText;
 import play.mvc.results.RenderXml;
 import play.mvc.results.Result;
 import play.mvc.results.Unauthorized;
+import play.template2.GTJavaBase;
 import play.templates.Template;
 import play.templates.TemplateLoader;
 import play.utils.Default;
 import play.utils.Java;
 import play.vfs.VirtualFile;
 
-import com.google.gson.JsonSerializer;
-import com.thoughtworks.xstream.XStream;
+import java.io.File;
+import java.io.InputStream;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
-import org.apache.commons.javaflow.Continuation;
-import org.apache.commons.javaflow.bytecode.StackRecorder;
-import play.libs.F;
-
-import javax.management.RuntimeErrorException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+import java.util.concurrent.Future;
 
 /**
  * Application controller support: The controller receives input and initiates a response by making calls on model objects.
@@ -656,6 +659,18 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
         templateBinding.put("flash", Scope.Flash.current());
         templateBinding.put("params", Scope.Params.current());
         templateBinding.put("errors", Validation.errors());
+
+
+        if (1 == 1) {
+            templateBinding.put("_response_encoding", Request.current().encoding);
+            templateBinding.put("play", new Play());
+            templateBinding.put("messages", new Messages());
+            templateBinding.put("lang", Lang.get());
+
+            GTJavaBase template = Play.templateRepo.getTemplateInstance( templateName);
+            throw new RenderTemplateGT( template, templateBinding.data);
+        }
+
         try {
             Template template = TemplateLoader.load(template(templateName));
             throw new RenderTemplate(template, templateBinding.data);

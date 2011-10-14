@@ -339,7 +339,7 @@ public class GTPreCompiler {
                     }
                     // split tag name and optional params
 
-                    final Pattern tagBodyP = Pattern.compile("([^\\s]+)(?:$|\\s+(.+))");
+                    final Pattern tagBodyP = Pattern.compile("([^\\s]+)(?:\\s*$|\\s+(.+))");
 
                     m = tagBodyP.matcher(tagBody);
                     if (!m.find()) {

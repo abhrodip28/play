@@ -1,17 +1,5 @@
 package play;
 
-import java.io.File;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
-import java.io.LineNumberReader;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import play.cache.Cache;
 import play.classloading.ApplicationClasses;
 import play.classloading.ApplicationClassloader;
@@ -21,14 +9,39 @@ import play.libs.IO;
 import play.mvc.Http;
 import play.mvc.Router;
 import play.plugins.PluginCollection;
+import play.template2.GTTemplateRepo;
+import play.templates.GTIntegration1X;
+import play.templates.GT_init1x;
 import play.templates.TemplateLoader;
 import play.utils.OrderSafeProperties;
 import play.vfs.VirtualFile;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.LineNumberReader;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Main framework class
  */
 public class Play {
+
+    public static GTTemplateRepo templateRepo;
 
     /**
      * 2 modes
@@ -278,6 +291,12 @@ public class Play {
 
         // Enable a first classloader
         classloader = new ApplicationClassloader();
+
+        // init GT-templates
+        GT_init1x.initGTTemplateEngine(templatesPath);
+
+        templateRepo = new GTTemplateRepo( classloader,  true, new GTIntegration1X());
+
 
         // Fix ctxPath
         if ("/".equals(Play.ctxPath)) {

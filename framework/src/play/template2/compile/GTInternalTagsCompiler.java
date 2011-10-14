@@ -56,15 +56,6 @@ public class GTInternalTagsCompiler {
         out.append(" }\n");
     }
 
-    public void tag_set(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
-        StringBuilder out = sc.out;
-        String contentVariableName = "content";
-        generateContentOutputCapturing(contentMethodName, contentVariableName, out);
-        //store the output in the set-/get-map
-        out.append("tag_set_get_store.put");
-
-    }
-
 
     public void tag_if(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;

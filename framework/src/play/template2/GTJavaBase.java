@@ -28,6 +28,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
     protected Binding binding;
     private final Class<? extends GTGroovyBase> groovyClass;
 
+    protected Map<String, Object> orgArgs = null;
+
     // if this tag uses #{extends}, then the templatePath we extends is stored here.
     public String extendsTemplatePath = null; // default is not to extend anything...
     public GTJavaBase extendedTemplate = null;
@@ -96,7 +98,9 @@ public abstract class GTJavaBase extends GTRenderingResult {
         allOuts.add(out);
     }
 
-    protected void renderTemplate(Map<String, Object> args) {
+    public void renderTemplate(Map<String, Object> args) {
+        // must store a copy of args, so we can pass the same (unchnaged) args to an extending template.
+        this.orgArgs = new HashMap<String, Object>(args);
         this.binding = new Binding(args);
         // must init our groovy script
         groovyScript = InvokerHelper.createScript(groovyClass, binding);
@@ -113,8 +117,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
             // tell it that "we" extended it..
             extendedTemplate.extendingTemplate = this;
 
-            // ok, render it..
-            extendedTemplate.renderTemplate( args);
+            // ok, render it with original args..
+            extendedTemplate.renderTemplate( orgArgs );
         }
     }
 
@@ -150,7 +154,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
     }
 
     // We know that o is never null
-    protected String objectToString( Object o) {
+    public String objectToString( Object o) {
         if (rawDataClass==null) {
             rawDataClass = templateRepo.integration.getRawDataClass();
         }
@@ -185,7 +189,10 @@ public abstract class GTJavaBase extends GTRenderingResult {
         // must set contentRenderes so that when the tag/template calls doBody, we can inject the output of the content of this tag
         tagTemplate.contentRenderer = contentRenderer;
         // render the tag
-        tagTemplate.renderTemplate(tagArgs);
+        // input should be everyting in this templates scope + the tag args
+        Map<String, Object> completeTagArgs = new HashMap<String, Object>( this.binding.getVariables());
+        completeTagArgs.putAll( tagArgs);
+        tagTemplate.renderTemplate(completeTagArgs);
         //grab the output
         insertOutput( tagTemplate );
     }

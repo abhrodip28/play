@@ -1,5 +1,6 @@
 package play.template2;
 
+import groovy.lang.MissingPropertyException;
 import groovy.lang.Script;
 
 /**
@@ -14,5 +15,18 @@ public class GTGroovyBase extends Script {
     @Override
     public Object run() {
         throw new RuntimeException("Not supposed to run this method");
+    }
+
+    /**
+     * All first-level property resolving is done through here
+     */
+    @Override
+    public Object getProperty(String property) {
+        try {
+            return super.getProperty(property);
+        } catch (MissingPropertyException mpe) {
+            // Just return null if not found
+            return null;
+        }
     }
 }
