@@ -55,16 +55,30 @@ public class HTML {
         if (input == null) {
             return null;
         }
-        StringBuffer escaped = new StringBuffer(input.length() * 2);
+        //StringBuffer escaped = new StringBuffer(input.length() * 2);
+        StringBuilder escaped = null;
+
+        int prevStart = 0;
+
         for (int i = 0; i < input.length(); i++) {
             char character = input.charAt(i);
             String reference = characterEntityReferences.convertToReference(character);
             if (reference != null) {
+                if (escaped==null) {
+                    escaped = new StringBuilder(input.length() + (input.length()/5));
+                }
+                // must copy all previous none-ecaped chars
+                escaped.append(input.substring(prevStart, i));
                 escaped.append(reference);
-            } else {
-                escaped.append(character);
+                prevStart = i+1;
             }
         }
+        if ( escaped == null) {
+            // nothing was escaped
+            return input;
+        }
+        // get the rest
+        escaped.append( input.substring(prevStart));
         return escaped.toString();
     }
 
