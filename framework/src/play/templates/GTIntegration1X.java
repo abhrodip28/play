@@ -1,17 +1,20 @@
 package play.templates;
 
 import play.template2.GTIntegration;
+import play.template2.GTTemplateRepo;
+import play.template2.compile.GTPreCompiler;
+import play.template2.compile.GTPreCompilerFactory;
 import play.utils.HTML;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mortenkjetland
- * Date: 10/13/11
- * Time: 10:36 AM
- * To change this template use File | Settings | File Templates.
- */
 public class GTIntegration1X implements GTIntegration
 {
+
+    public static class PreCompilerFactory implements GTPreCompilerFactory {
+        public GTPreCompiler createCompiler(GTTemplateRepo templateRepo) {
+            return new GTPreCompiler1xImpl(templateRepo);
+        }
+    }
+
     public Class getRawDataClass() {
         return BaseTemplate.RawData.class;
     }

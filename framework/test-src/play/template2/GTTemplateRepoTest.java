@@ -14,7 +14,7 @@ public class GTTemplateRepoTest {
     @Test
     public void testGetTemplateInstance() throws Exception {
 
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+        GTTemplateRepo repo = createRepo();
 
         File templateFile = new File("test-src/play/template2/template_ifs.html");
         String templatePath = templateFile.getCanonicalPath();
@@ -37,12 +37,16 @@ public class GTTemplateRepoTest {
         
     }
 
+    private GTTemplateRepo createRepo() {
+        return new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X(), null);
+    }
+
     @Test
     public void test_using_extends() throws Exception {
 
         Map<String, Object> args = new HashMap<String, Object>();
 
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+        GTTemplateRepo repo = createRepo();
 
         File templateFile = new File("test-src/play/template2/template_using_extends.html");
         String templatePath = templateFile.getCanonicalPath();
@@ -58,7 +62,7 @@ public class GTTemplateRepoTest {
 
         Map<String, Object> args = new HashMap<String, Object>();
 
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+        GTTemplateRepo repo = createRepo();
 
         File templateFile = new File("test-src/play/template2/template_using_fasttags.html");
         String templatePath = templateFile.getCanonicalPath();
@@ -75,7 +79,7 @@ public class GTTemplateRepoTest {
         Map<String, Object> args = new HashMap<String, Object>();
 
         GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+        GTTemplateRepo repo = createRepo();
 
         File templateFile = new File("test-src/play/template2/template_using_legacy_fasttags.html");
         String templatePath = templateFile.getCanonicalPath();
@@ -94,7 +98,7 @@ public class GTTemplateRepoTest {
         GTDefaultTemplateFileResolver.templateFolders = new File[]{new File("test-src/play/template2/")};
 
         GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+        GTTemplateRepo repo = createRepo();
 
         GTJavaBase t = repo.getTemplateInstance( "template_using_tag_file.html" );
         t.renderTemplate(args);
@@ -111,7 +115,7 @@ public class GTTemplateRepoTest {
         GTDefaultTemplateFileResolver.templateFolders = new File[]{new File("test-src/play/template2/")};
 
         GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
-        GTTemplateRepo repo = new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X());
+        GTTemplateRepo repo = createRepo();
 
         GTJavaBase t = repo.getTemplateInstance( "template_using_inline_groovy.html" );
         t.renderTemplate(args);

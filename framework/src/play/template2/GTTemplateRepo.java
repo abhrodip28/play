@@ -1,6 +1,7 @@
 package play.template2;
 
 import play.template2.compile.GTCompiler;
+import play.template2.compile.GTPreCompilerFactory;
 
 import java.io.File;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ public class GTTemplateRepo {
 
     public final ClassLoader parentClassLoader;
     public final boolean checkForChanges;
+    public final GTPreCompilerFactory preCompilerFactory;
 
     public static GTTemplateFileResolver templateFileResolver = new GTDefaultTemplateFileResolver();
 
@@ -50,7 +52,7 @@ public class GTTemplateRepo {
     }
 
 
-    public GTTemplateRepo(ClassLoader parentClassLoader, boolean checkForChanges, GTIntegration integration) {
+    public GTTemplateRepo(ClassLoader parentClassLoader, boolean checkForChanges, GTIntegration integration, GTPreCompilerFactory preCompilerFactory) {
         this.parentClassLoader = parentClassLoader;
         if (parentClassLoader== null) {
             throw new RuntimeException("parentClassLoader cannot be null");
@@ -59,6 +61,11 @@ public class GTTemplateRepo {
         this.integration = integration;
         if (integration== null) {
             throw new RuntimeException("integration cannot be null");
+        }
+
+        this.preCompilerFactory = preCompilerFactory;
+        if ( preCompilerFactory ==null ) {
+            throw new RuntimeException("preCompilerFactory cannot be null");
         }
     }
 
@@ -100,7 +107,7 @@ public class GTTemplateRepo {
                         }
 
                         // compile it
-                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this).compile(file);
+                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory).compile(file);
 
                         GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
 

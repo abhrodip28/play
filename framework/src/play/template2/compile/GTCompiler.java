@@ -13,10 +13,12 @@ public class GTCompiler {
 
     private final ClassLoader parentClassloader;
     private final GTTemplateRepo templateRepo;
+    private final GTPreCompilerFactory preCompilerFactory;
 
-    public GTCompiler(ClassLoader parentClassloader, GTTemplateRepo templateRepo) {
+    public GTCompiler(ClassLoader parentClassloader, GTTemplateRepo templateRepo, GTPreCompilerFactory preCompilerFactory) {
         this.parentClassloader = parentClassloader;
         this.templateRepo = templateRepo;
+        this.preCompilerFactory = preCompilerFactory;
     }
 
     public static class CL extends ClassLoader {
@@ -54,7 +56,7 @@ public class GTCompiler {
 
     public CompiledTemplate compile( File templateFile ) {
         // precompile it
-        GTPreCompiler.Output precompiled = new GTPreCompiler(templateRepo).compile( templateFile);
+        GTPreCompiler.Output precompiled = preCompilerFactory.createCompiler(templateRepo).compile(templateFile);
 
         // compile groovy
         byte[] groovyClassBytes = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( precompiled.groovyCode);

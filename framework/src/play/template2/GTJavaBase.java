@@ -4,7 +4,7 @@ import groovy.lang.Binding;
 import groovy.lang.Script;
 import org.codehaus.groovy.runtime.InvokerHelper;
 
-import java.io.PrintStream;
+import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.Collection;
 import java.util.HashMap;
@@ -65,21 +65,15 @@ public abstract class GTJavaBase extends GTRenderingResult {
     }
 
 
-    public void writeOutput(PrintStream ps, String encoding) {
+    @Override
+    public void writeOutput(OutputStream ps, String encoding) {
         // if we have extended another template, we must pass this on to this template-instance,
         // because "it" has all the output
         if (extendedTemplate != null) {
             extendedTemplate.writeOutput(ps, encoding);
             return ;
         }
-
-        for ( StringWriter s : allOuts) {
-            try {
-                ps.write(s.getBuffer().toString().getBytes(encoding));
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+        super.writeOutput( ps, encoding);
     }
 
     public void insertOutput(GTRenderingResult otherTemplate) {
@@ -117,6 +111,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         // must init our groovy script
 
         groovyScript = InvokerHelper.createScript(groovyClass, binding);
+        groovyScript.setProperty(GTGroovyBase.__TemplatePath_propertyName, templatePath);
 
         if ( existingVisitedTagNameCounter == null) {
             templateRepo.integration.renderingStarted();

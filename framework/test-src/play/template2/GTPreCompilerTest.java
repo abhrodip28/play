@@ -15,6 +15,23 @@ import static org.fest.assertions.Assertions.assertThat;
 
 public class GTPreCompilerTest {
 
+    public static class AGTPreCompiler extends GTPreCompiler {
+
+        public AGTPreCompiler(GTTemplateRepo templateRepo) {
+            super(templateRepo);
+        }
+
+        @Override
+        protected GTFragmentCode generateRegularActionPrinter(boolean absolute, String expression, SourceContext sc) {
+            throw new RuntimeException("Not impl");
+        }
+
+        @Override
+        public Class<? extends GTGroovyBase> getGroovyBaseClass() {
+            return GTGroovyBase.class;
+        }
+    }
+
     @Test
     public void runit() throws Exception {
 
@@ -44,12 +61,12 @@ public class GTPreCompilerTest {
     public void testCompile_onlyPlainText() throws Exception {
         File file = new File("test-src/play/template2/template1.html");
         assertThat(file.exists()).isTrue();
-        GTPreCompiler.Output out = new GTPreCompiler(null).compile(file);
+        GTPreCompiler.Output out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
 
         file = new File("test-src/play/template2/template1_multiple_lines.html");
         assertThat(file.exists()).isTrue();
-        out = new GTPreCompiler(null).compile(file);
+        out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
     }
 
@@ -63,7 +80,7 @@ public class GTPreCompilerTest {
     public void testCompile_simpleTags() throws Exception {
         File file = new File("test-src/play/template2/template2.html");
         assertThat(file.exists()).isTrue();
-        GTPreCompiler.Output out = new GTPreCompiler(null).compile(file);
+        GTPreCompiler.Output out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
     }
 
@@ -71,7 +88,7 @@ public class GTPreCompilerTest {
     public void testCompile_simpleTags_withError() throws Exception {
         File file = new File("test-src/play/template2/template2_withError.html");
         assertThat(file.exists()).isTrue();
-        GTPreCompiler.Output out = new GTPreCompiler(null).compile(file);
+        GTPreCompiler.Output out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
     }
 
@@ -79,7 +96,7 @@ public class GTPreCompilerTest {
     public void testCompile_simpleTags_withError2() throws Exception {
         File file = new File("test-src/play/template2/template2_withError2.html");
         assertThat(file.exists()).isTrue();
-        GTPreCompiler.Output out = new GTPreCompiler(null).compile(file);
+        GTPreCompiler.Output out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
     }
 
@@ -87,7 +104,7 @@ public class GTPreCompilerTest {
     public void testCompile_multipleTags() throws Exception {
         File file = new File("test-src/play/template2/template3.html");
         assertThat(file.exists()).isTrue();
-        GTPreCompiler.Output out = new GTPreCompiler(null).compile(file);
+        GTPreCompiler.Output out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
     }
 
@@ -95,7 +112,7 @@ public class GTPreCompilerTest {
     public void testCompile_list() throws Exception {
         File file = new File("test-src/play/template2/template_using_list.html");
         assertThat(file.exists()).isTrue();
-        GTPreCompiler.Output out = new GTPreCompiler(null).compile(file);
+        GTPreCompiler.Output out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
     }
 
@@ -103,7 +120,7 @@ public class GTPreCompilerTest {
     public void testCompile_ifs() throws Exception {
         File file = new File("test-src/play/template2/template_ifs.html");
         assertThat(file.exists()).isTrue();
-        GTPreCompiler.Output out = new GTPreCompiler(null).compile(file);
+        GTPreCompiler.Output out = new AGTPreCompiler(null).compile(file);
         printOutput( file, out);
     }
 

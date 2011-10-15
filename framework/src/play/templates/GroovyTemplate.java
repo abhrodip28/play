@@ -9,15 +9,6 @@ import groovy.lang.GroovyObjectSupport;
 import groovy.lang.GroovyShell;
 import groovy.lang.MissingPropertyException;
 import groovy.lang.Script;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.*;
-
-import org.apache.commons.lang.StringEscapeUtils;
 import org.codehaus.groovy.control.CompilationUnit;
 import org.codehaus.groovy.control.CompilationUnit.GroovyClassOperation;
 import org.codehaus.groovy.control.CompilerConfiguration;
@@ -46,12 +37,25 @@ import play.exceptions.UnexpectedException;
 import play.i18n.Lang;
 import play.i18n.Messages;
 import play.libs.Codec;
-import play.mvc.Http;
-import play.utils.Java;
 import play.mvc.ActionInvoker;
+import play.mvc.Http;
 import play.mvc.Http.Request;
 import play.mvc.Router;
 import play.utils.HTML;
+import play.utils.Java;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A template
@@ -329,7 +333,7 @@ public class GroovyTemplate extends BaseTemplate {
         public Object getProperty(String property) {
             try {
                 if (property.equals("actionBridge")) {
-                    return new ActionBridge(this);
+                    return new ActionBridge(this.template.name);
                 }
                 return super.getProperty(property);
             } catch (MissingPropertyException mpe) {
@@ -461,25 +465,25 @@ public class GroovyTemplate extends BaseTemplate {
             return GroovyTemplate.layoutData.get().get(key);
         }
 
-        static class ActionBridge extends GroovyObjectSupport {
+        public static class ActionBridge extends GroovyObjectSupport {
 
-            ExecutableTemplate template = null;
+            String templateName = null;
             String controller = null;
             boolean absolute = false;
 
-            public ActionBridge(ExecutableTemplate template, String controllerPart, boolean absolute) {
-                this.template = template;
+            public ActionBridge(String templateName, String controllerPart, boolean absolute) {
+                this.templateName = templateName;
                 this.controller = controllerPart;
                 this.absolute = absolute;
             }
 
-            public ActionBridge(ExecutableTemplate template) {
-                this.template = template;
+            public ActionBridge(String templateName) {
+                this.templateName = templateName;
             }
 
             @Override
             public Object getProperty(String property) {
-                return new ActionBridge(template, controller == null ? property : controller + "." + property, absolute);
+                return new ActionBridge(templateName, controller == null ? property : controller + "." + property, absolute);
             }
 
             public Object _abs() {
@@ -527,7 +531,7 @@ public class GroovyTemplate extends BaseTemplate {
                         if (absolute) {
                             def.absolute();
                         }
-                        if (template.template.name.endsWith(".xml")) {
+                        if (templateName.endsWith(".xml")) {
                             def.url = def.url.replace("&", "&amp;");
                         }
                         return def;

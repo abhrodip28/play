@@ -1,6 +1,8 @@
 package play.template2.compile;
 
 import play.template2.GTFastTagResolver;
+import play.template2.GTGroovyBase;
+import play.template2.GTJavaBase;
 import play.template2.GTTemplateRepo;
 import play.template2.legacy.GTLegacyFastTagResolver;
 
@@ -143,7 +145,8 @@ public class GTPreCompiler {
 
         // generate groovy class
         gout.append("package "+generatedPackageName+";\n");
-        gout.append("class " + templateClassNameGroovy + " extends play.template2.GTGroovyBase {\n");
+        gout.append("class " + templateClassNameGroovy + " extends "+getGroovyBaseClass().getName()+" {\n");
+
 
         StringBuilder out = sc.out;
 
@@ -221,16 +224,17 @@ public class GTPreCompiler {
 
     // pattern that find any of the '#/$/& etc we're intercepting. it find the next one - so we know what to look for
     // and start of comment and code-block
-    final static Pattern partsP = Pattern.compile("([#\\$])\\{[^\\}]+\\}|(\\*\\{)|(%\\{)");
+    final static Pattern partsP = Pattern.compile("([#\\$]|@?@)\\{[^\\}]+\\}|(\\*\\{)|(%\\{)");
 
     // pattern that finds all kinds of tags
     final static Pattern tagP = Pattern.compile("#\\{([^\\}]+)\\}");
+    final Pattern tagBodyP = Pattern.compile("([^\\s]+)(?:\\s*$|\\s+(.+))");
 
     final static Pattern endCommentP = Pattern.compile("\\}\\*");
     final static Pattern endScriptP = Pattern.compile("\\}%");
 
-    // pattern that finds a $ (value) with content/expression
-    final static Pattern valueP = Pattern.compile("\\$\\{([^\\}]+)\\}");
+    // pattern that finds a $/@/@@ (value) with content/expression
+    final static Pattern valueP = Pattern.compile("(?:\\$|@?@)\\{([^\\}]+)\\}");
 
     protected GTFragment processNextFragment( SourceContext sc) {
         // find next something..
@@ -339,7 +343,7 @@ public class GTPreCompiler {
                     }
                     // split tag name and optional params
 
-                    final Pattern tagBodyP = Pattern.compile("([^\\s]+)(?:\\s*$|\\s+(.+))");
+
 
                     m = tagBodyP.matcher(tagBody);
                     if (!m.find()) {
@@ -367,8 +371,18 @@ public class GTPreCompiler {
 
                     return generateExpressionPrinter(expression, sc);
 
-                }
-                else {
+                } else if ("@".equals(type) || "@@".equals(type)) {
+                    m = valueP.matcher(currentLine);
+                    if (!m.find(correctOffset)) {
+                        throw new RuntimeException("Where supposed to find the @value here..");
+                    }
+
+                    String action = m.group(1).trim();
+
+                    boolean absolute = "@@".equals(type);
+                    return generateRegularActionPrinter(absolute, action, sc);
+
+                } else {
                     throw new RuntimeException("Don't know how to handle type '"+type+"'");
                 }
             } else {
@@ -393,6 +407,19 @@ public class GTPreCompiler {
             return createGTFragmentCodeForPlainText(plainText);
         }
         return null;
+    }
+
+    // the play framework must check for @{} (actions) and patch tag arguments.
+    // default impl is to just return as is - override to customize
+    protected String checkAndPatchActionStringsInTagArguments( String tagArguments) {
+        return tagArguments;
+    }
+
+    // The play framework impl must implement this method so that it returns the java-code needed to print the
+    // correct action url when rendering the template.
+    // Look at generateExpressionPrinter for an idea of how it can be done.
+    protected GTFragmentCode generateRegularActionPrinter( boolean absolute, String expression, SourceContext sc) {
+        throw new RuntimeException("actions not supported - override to implement it");
     }
 
     private GTFragmentCode generateExpressionPrinter(String expression, SourceContext sc) {
@@ -517,9 +544,13 @@ public class GTPreCompiler {
 
             // first time - must generate it
 
+            // if only one argument, then we must name it 'arg'
             if (!tagArgString.matches("^[_a-zA-Z0-9]+\\s*:.*$")) {
                 tagArgString = "arg:" + tagArgString;
             }
+
+            tagArgString = checkAndPatchActionStringsInTagArguments(tagArgString);
+
             StringBuilder gout = sc.gout;
             methodName = "args_"+tagName + "_"+(sc.nextMethodIndex++);
             gout.append("Map<String, Object> "+methodName+"() {\n");
@@ -729,5 +760,11 @@ public class GTPreCompiler {
 
     }
 
+    public Class<? extends GTGroovyBase> getGroovyBaseClass() {
+        return GTGroovyBase.class;
+    }
+    public Class<? extends GTJavaBase> getJavaBaseClass() {
+        return GTJavaBase.class;
+    }
 
 }

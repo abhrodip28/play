@@ -12,6 +12,8 @@ import groovy.lang.Script;
  */
 public class GTGroovyBase extends Script {
 
+    public static final String __TemplatePath_propertyName = "____templatePath";
+
     @Override
     public Object run() {
         throw new RuntimeException("Not supposed to run this method");
