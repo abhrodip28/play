@@ -36,6 +36,7 @@ public class GTInternalTagsCompiler {
     public void tag_list(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
         out.append(" Collection items = (Collection)tagArgs.get(\"items\");\n");
+        out.append(" if (items == null ) return ;\n");
         out.append(" String as = (String)tagArgs.get(\"as\");\n");
         out.append(" String itemName = (as==null?\"_\":as);\n");
         out.append(" as = (as == null ? \"\" : as);\n");
@@ -63,9 +64,9 @@ public class GTInternalTagsCompiler {
         // extract the argument named "arg"
         out.append(" Object e = tagArgs.get(\"arg\");\n");
         // clear the runNextElse
-        out.append(" runNextElse.remove(tlid);\n");
+        out.append(" clearElseFlag();\n");
         // do the if
-        out.append(" if(evaluateCondition(e)) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
+        out.append(" if(evaluateCondition(e)) {"+contentMethodName+"();} else { setElseFlag(); }\n");
     }
 
     public void tag_ifnot(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
@@ -75,9 +76,9 @@ public class GTInternalTagsCompiler {
         out.append(" Object e = tagArgs.get(\"arg\");\n");
 
         // clear the runNextElse
-        out.append(" runNextElse.remove(tlid);\n");
+        out.append(" clearElseFlag();\n");
         // do the if
-        out.append(" if(!evaluateCondition(e)) {"+contentMethodName+"();} else { runNextElse.add(tlid); }\n");
+        out.append(" if(!evaluateCondition(e)) {"+contentMethodName+"();} else { setElseFlag(); }\n");
     }
 
     public void tag_else(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
@@ -86,10 +87,10 @@ public class GTInternalTagsCompiler {
         // run the else if runNextElse is true
 
         // do the if
-        out.append(" if( runNextElse.contains(tlid)) {"+contentMethodName+"();}\n");
+        out.append(" if( elseFlagIsSet()) {"+contentMethodName+"();}\n");
 
         // clear runNextElse
-        out.append(" runNextElse.remove(tlid);\n");
+        out.append(" clearElseFlag();\n");
     }
 
     public void tag_elseif(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
@@ -98,7 +99,7 @@ public class GTInternalTagsCompiler {
         // run the elseif if runNextElse is true AND expression is true
 
         // do the if
-        out.append(" if( runNextElse.contains(tlid)) {\n");
+        out.append(" if( elseFlagIsSet()) {\n");
 
         // Just include the regluar if-tag here..
         tag_if(tagName, contentMethodName, sc);

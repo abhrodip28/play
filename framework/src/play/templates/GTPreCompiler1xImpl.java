@@ -1,14 +1,20 @@
 package play.templates;
 
+import play.Play;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
 import play.template2.GTTemplateRepo;
 import play.template2.compile.GTPreCompiler;
+import play.template2.legacy.GTLegacyFastTagResolver;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GTPreCompiler1xImpl extends GTPreCompiler {
+
+    private GTLegacyFastTagResolver legacyFastTagResolver = new GTLegacyFastTagResolver1X();
 
     public GTPreCompiler1xImpl(GTTemplateRepo templateRepo) {
         super(templateRepo);
@@ -82,5 +88,26 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
     @Override
     public Class<? extends GTJavaBase> getJavaBaseClass() {
         return GTJavaBase1xImpl.class;
+    }
+
+    @Override
+    public List<String> getJavaExtensionClasses() {
+        List<String> extensionsClassnames = new ArrayList<String>(5);
+        extensionsClassnames.add(JavaExtensions.class.getName());
+        try {
+            extensionsClassnames.addAll( Play.pluginCollection.addTemplateExtensions());
+            List<Class> extensionsClasses = Play.classloader.getAssignableClasses(JavaExtensions.class);
+            for (Class extensionsClass : extensionsClasses) {
+                extensionsClassnames.add(extensionsClass.getName());
+            }
+        } catch (Throwable e) {
+            //
+        }
+        return extensionsClassnames;
+    }
+
+    @Override
+    public GTLegacyFastTagResolver getGTLegacyFastTagResolver() {
+        return legacyFastTagResolver;
     }
 }

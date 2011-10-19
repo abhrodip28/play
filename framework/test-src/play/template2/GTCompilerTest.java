@@ -19,6 +19,6 @@ public class GTCompilerTest {
     public void testCompile() throws Exception {
         File file = new File("test-src/play/template2/template_ifs.html");
         assertThat(file.exists()).isTrue();
-        new GTCompiler(getClass().getClassLoader(), null, null).compile( file );
+        new GTCompiler(getClass().getClassLoader(), null, null).compile( file.getPath(),file );
     }
 }

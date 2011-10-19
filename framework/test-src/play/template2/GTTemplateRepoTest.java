@@ -78,7 +78,7 @@ public class GTTemplateRepoTest {
 
         Map<String, Object> args = new HashMap<String, Object>();
 
-        GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
+        //GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
         GTTemplateRepo repo = createRepo();
 
         File templateFile = new File("test-src/play/template2/template_using_legacy_fasttags.html");
@@ -97,7 +97,7 @@ public class GTTemplateRepoTest {
 
         GTDefaultTemplateFileResolver.templateFolders = new File[]{new File("test-src/play/template2/")};
 
-        GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
+        //GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
         GTTemplateRepo repo = createRepo();
 
         GTJavaBase t = repo.getTemplateInstance( "template_using_tag_file.html" );
@@ -114,7 +114,7 @@ public class GTTemplateRepoTest {
 
         GTDefaultTemplateFileResolver.templateFolders = new File[]{new File("test-src/play/template2/")};
 
-        GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
+        //GTPreCompiler.legacyFastTagResolver = new GTLegacyFastTagResolver1X();
         GTTemplateRepo repo = createRepo();
 
         GTJavaBase t = repo.getTemplateInstance( "template_using_inline_groovy.html" );

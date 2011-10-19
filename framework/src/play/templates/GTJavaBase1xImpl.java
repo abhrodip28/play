@@ -1,6 +1,7 @@
 package play.templates;
 
 import play.Play;
+import play.data.validation.Validation;
 import play.mvc.Router;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
@@ -24,5 +25,13 @@ public abstract class GTJavaBase1xImpl extends GTJavaBase {
         return Router.reverseWithCheck(action, Play.getVirtualFile(action), absolute);
     }
 
-    
+    @Override
+    public boolean validationHasErrors() {
+        return Validation.hasErrors();
+    }
+
+    @Override
+    public boolean validationHasError(String key) {
+        return Validation.hasError( key );
+    }
 }

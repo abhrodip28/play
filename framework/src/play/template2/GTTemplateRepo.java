@@ -2,6 +2,7 @@ package play.template2;
 
 import play.template2.compile.GTCompiler;
 import play.template2.compile.GTPreCompilerFactory;
+import play.template2.exceptions.GTTemplateNotFound;
 
 import java.io.File;
 import java.util.HashMap;
@@ -79,7 +80,7 @@ public class GTTemplateRepo {
         return true;
     }
 
-    public GTJavaBase getTemplateInstance( String templatePath) {
+    public GTJavaBase getTemplateInstance( String templatePath) throws GTTemplateNotFound {
 
         // Is this a loaded template ?
         TemplateInfo ti = loadedTemplates.get(templatePath);
@@ -103,15 +104,17 @@ public class GTTemplateRepo {
                         File file = templateFileResolver.resolveTemplatePathToFile( templatePath);
 
                         if ( file == null || !file.exists() || !file.isFile() ) {
-                            throw new RuntimeException("Cannot find template file " + templatePath);
+                            throw new GTTemplateNotFound(templatePath);
                         }
 
                         // compile it
-                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory).compile(file);
+                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory).compile( templatePath, file);
 
                         GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
 
                         ti = new TemplateInfo(file, templateInstanceFactory);
+                    } catch(GTTemplateNotFound e) {
+                        throw e;
                     } catch (Exception e) {
                         // Must only store it if no error occurs
                         throw new RuntimeException(e);
@@ -124,7 +127,7 @@ public class GTTemplateRepo {
             }
         } else {
             if ( ti == null) {
-                throw new RuntimeException("Unknown template " + templatePath);
+                throw new GTTemplateNotFound(templatePath);
             }
         }
 

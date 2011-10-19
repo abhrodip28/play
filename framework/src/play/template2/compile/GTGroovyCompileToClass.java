@@ -21,7 +21,7 @@ public class GTGroovyCompileToClass {
         this.parentClassLoader = parentClassLoader;
     }
 
-    public byte[] compileGroovySource( String groovySource) {
+    public GTJavaCompileToClass.CompiledClass[] compileGroovySource( String groovySource) {
 
         final List<GroovyClass> groovyClassesForThisTemplate = new ArrayList<GroovyClass>();
 
@@ -50,19 +50,12 @@ public class GTGroovyCompileToClass {
         });
         compilationUnit.compile();
 
-        if ( groovyClassesForThisTemplate.size() != 1 ) {
-            throw new RuntimeException("The compilation should only result in one groovy class!");
+        GTJavaCompileToClass.CompiledClass[] result = new GTJavaCompileToClass.CompiledClass[groovyClassesForThisTemplate.size()];
+        for ( int i=0; i < result.length; i++) {
+            GroovyClass groovyClass = groovyClassesForThisTemplate.get(i);
+            result[i] = new GTJavaCompileToClass.CompiledClass( groovyClass.getName(), groovyClass.getBytes() );
         }
 
-        GroovyClass groovyClass = groovyClassesForThisTemplate.get(0);
-
-//        Class javaClass;
-//        try {
-//            javaClass = classLoader.loadClass( groovyClass.getName());
-//        } catch (Exception e) {
-//            throw new RuntimeException("Error loading java class for groovy class", e);
-//        }
-
-        return groovyClass.getBytes();
+        return result;
     }
 }

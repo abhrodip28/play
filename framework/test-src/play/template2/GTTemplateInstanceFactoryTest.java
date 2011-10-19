@@ -24,10 +24,11 @@ public class GTTemplateInstanceFactoryTest {
 
         ClassLoader parentClassLoader = getClass().getClassLoader();
 
+
         File file = new File("test-src/play/template2/template_using_list.html");
         assertThat(file.exists()).isTrue();
 
-        GTCompiler.CompiledTemplate cp = new GTCompiler(parentClassLoader, null, null).compile( file );
+        GTCompiler.CompiledTemplate cp = new GTCompiler(parentClassLoader, null, null).compile( file.getPath(), file );
 
         GTTemplateInstanceFactory factory = new GTTemplateInstanceFactory(parentClassLoader, cp);
 

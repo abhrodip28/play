@@ -46,6 +46,7 @@ import play.mvc.results.RenderXml;
 import play.mvc.results.Result;
 import play.mvc.results.Unauthorized;
 import play.template2.GTJavaBase;
+import play.template2.exceptions.GTTemplateNotFound;
 import play.templates.Template;
 import play.templates.TemplateLoader;
 import play.utils.Default;
@@ -667,9 +668,16 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
             templateBinding.put("messages", new Messages());
             templateBinding.put("lang", Lang.get());
 
-            GTJavaBase template = Play.templateRepo.getTemplateInstance( templateName);
+            String templatePath = template(templateName);
+            GTJavaBase template;
+            try {
+                template = Play.templateRepo.getTemplateInstance( templatePath );
+            } catch ( GTTemplateNotFound e) {
+                throw new TemplateNotFoundException(e.templatePath);
+            }
             throw new RenderTemplateGT( template, templateBinding.data);
         }
+
 
         try {
             Template template = TemplateLoader.load(template(templateName));

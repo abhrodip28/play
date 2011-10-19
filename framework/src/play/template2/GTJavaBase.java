@@ -38,7 +38,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
     // When invoking a template as a tag, the content of the tag / body is stored here..
     public GTContentRenderer contentRenderer;
 
-    protected GTTemplateRepo templateRepo;
+    public GTTemplateRepo templateRepo;
 
     protected Class rawDataClass = null;
 
@@ -116,7 +116,10 @@ public abstract class GTJavaBase extends GTRenderingResult {
         if ( existingVisitedTagNameCounter == null) {
             templateRepo.integration.renderingStarted();
         }
-        _renderTemplate();
+
+        groovyScript.setProperty("java_class", this);
+        groovyScript.run();
+        //_renderTemplate();
 
         // check if "we" have extended an other template..
         if (extendsTemplatePath != null) {
@@ -197,13 +200,18 @@ public abstract class GTJavaBase extends GTRenderingResult {
     }
 
     protected void invokeTagFile(String tagFilePath, GTContentRenderer contentRenderer, Map<String, Object> tagArgs) {
+
         GTJavaBase tagTemplate = templateRepo.getTemplateInstance(tagFilePath);
         // must set contentRenderes so that when the tag/template calls doBody, we can inject the output of the content of this tag
         tagTemplate.contentRenderer = contentRenderer;
         // render the tag
-        // input should be everyting in this templates scope + the tag args
-        Map<String, Object> completeTagArgs = new HashMap<String, Object>( this.binding.getVariables());
+        // input should be all org args
+        Map<String, Object> completeTagArgs = new HashMap<String, Object>( orgArgs );
 
+        // and all scoped variables under _caller
+        completeTagArgs.put("_caller", this.binding.getVariables());
+
+        // and of course the tag args:
         // must prefix all tag args with '_'
         for ( String key : tagArgs.keySet()) {
             completeTagArgs.put("_"+key, tagArgs.get(key));
@@ -213,5 +221,26 @@ public abstract class GTJavaBase extends GTRenderingResult {
         insertOutput( tagTemplate );
     }
 
-    
+
+    // must be overridden by play framework
+    public boolean validationHasErrors() {
+        throw new RuntimeException("Not implemented by default. Must be overridden by framework impl");
+    }
+
+    // must be overridden by play framework
+    public boolean validationHasError(String key) {
+        throw new RuntimeException("Not implemented by default. Must be overridden by framework impl");
+    }
+
+    public void clearElseFlag() {
+        runNextElse.remove(tlid);
+    }
+
+    public void setElseFlag() {
+        runNextElse.add(tlid);
+    }
+
+    public boolean elseFlagIsSet() {
+        return runNextElse.contains(tlid);
+    }
 }

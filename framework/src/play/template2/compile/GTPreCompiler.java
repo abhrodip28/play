@@ -15,6 +15,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +33,6 @@ public class GTPreCompiler {
 
     public GTFastTagResolver customFastTagResolver = null;
 
-    public static GTLegacyFastTagResolver legacyFastTagResolver = null;
-
     private final String varName = "ev";
 
     private final GTTemplateRepo templateRepo;
@@ -49,8 +48,15 @@ public class GTPreCompiler {
         public int lineOffset;
         public int nextMethodIndex = 0;
 
-        public SourceContext(File file) {
+
+        public final String pimpStart;
+        public final String pimpEnd;
+
+
+        public SourceContext(File file, String pimpStart, String pimpEnd) {
             this.file = file;
+            this.pimpStart = pimpStart;
+            this.pimpEnd = pimpEnd;
         }
     }
 
@@ -121,17 +127,27 @@ public class GTPreCompiler {
     }
 
 
-    public Output compile(File file) {
+    public Output compile(String templatePath, File file) {
         String src = readContentAsString(file);
-        return compile(src, file);
+        return compile(src, templatePath, file);
     }
 
-    public Output compile(String src, File file) {
+    public Output compile(String src, String templatePath, File file) {
 
 
         String[] lines = src.split("\\n");
 
-        SourceContext sc = new SourceContext(file);
+        // Must generate groovy pimp my lib stuff . myst be used in each groovy method that need pimping
+        StringBuilder pimpStart = new StringBuilder();
+        StringBuilder pimpEnd = new StringBuilder();
+        List<String> javaExtensionClasses = getJavaExtensionClasses();
+        for (int i=0; i<javaExtensionClasses.size(); i++) {
+            String clazz = javaExtensionClasses.get(i);
+            pimpStart.append("use(" + clazz + ") {");
+            pimpEnd.append("}");
+        }
+
+        SourceContext sc = new SourceContext(file, pimpStart.toString(), pimpEnd.toString());
         sc.lines = lines;
 
         GTFragment fragment = null;
@@ -148,6 +164,12 @@ public class GTPreCompiler {
         gout.append("class " + templateClassNameGroovy + " extends "+getGroovyBaseClass().getName()+" {\n");
 
 
+        gout.append(" public Object run(){\n");
+        gout.append(sc.pimpStart+"\n");
+        gout.append(" java_class._renderTemplate();\n");
+        gout.append(sc.pimpEnd+"\n");
+        gout.append(" }\n");
+
         StringBuilder out = sc.out;
 
         // generate java class
@@ -156,13 +178,13 @@ public class GTPreCompiler {
         out.append("import java.util.*;\n");
         out.append("import java.io.*;\n");
 
-        out.append("public class " + templateClassName + " extends play.template2.GTJavaBase {\n");
+        out.append("public class " + templateClassName + " extends "+getJavaBaseClass().getName()+" {\n");
 
         out.append(" private "+templateClassNameGroovy+" g;\n");
 
         // add constructor which initializes the templateClassNameGroovy-instance
         out.append(" public "+templateClassName+"() {\n");
-        out.append("  super("+templateClassNameGroovy+".class, \""+sc.file.getAbsolutePath()+"\");\n");
+        out.append("  super("+templateClassNameGroovy+".class, \""+templatePath+"\");\n");
         out.append(" }\n");
 
         rootFragments.add( new GTFragmentCode("  this.g = ("+templateClassNameGroovy+")groovyScript;\n"));
@@ -176,6 +198,7 @@ public class GTPreCompiler {
         // end of java class
         out.append("}\n");
 
+        //gout.append(sc.pimpEnd+"\n");
         // end of groovy class
         gout.append("}\n");
 
@@ -434,7 +457,9 @@ public class GTPreCompiler {
             StringBuilder gout = sc.gout;
             methodName = "expression_"+(sc.nextMethodIndex++);
             gout.append("Object "+methodName+"() {\n");
+            //gout.append(sc.pimpStart+"\n");
             gout.append(" return "+expression+";\n");
+            //gout.append(sc.pimpEnd+"\n");
             gout.append( "}\n");
             
             expression2GroovyMethodLookup.put(expression, methodName);
@@ -552,9 +577,11 @@ public class GTPreCompiler {
             tagArgString = checkAndPatchActionStringsInTagArguments(tagArgString);
 
             StringBuilder gout = sc.gout;
-            methodName = "args_"+tagName + "_"+(sc.nextMethodIndex++);
+            methodName = "args_"+fixStringForCode(tagName) + "_"+(sc.nextMethodIndex++);
             gout.append("Map<String, Object> "+methodName+"() {\n");
+            //gout.append(sc.pimpStart+"\n");
             gout.append(" return ["+tagArgString+"];\n");
+            //gout.append(sc.pimpEnd+"\n");
             gout.append( "}\n");
 
             tagArgs2GroovyMethodLookup.put(tagArgString, methodName);
@@ -563,8 +590,14 @@ public class GTPreCompiler {
         // must return the javacode needed to get the data
         return " Map tagArgs = (Map)g."+methodName+"();\n";
     }
+    
+    protected String fixStringForCode( String s) {
+        // some tags (tag-files) can contain dots int the name - must remove them
+        return s.replace('.','_');
+    }
 
     private String generateMethodName(String hint, SourceContext sc) {
+        hint = fixStringForCode(hint);
         return "m_" + hint + "_" + (sc.nextMethodIndex++);
     }
 
@@ -604,19 +637,25 @@ public class GTPreCompiler {
                 } else {
 
                     // look for lecacy fastTags
+                    GTLegacyFastTagResolver legacyFastTagResolver = getGTLegacyFastTagResolver();
                     if ( legacyFastTagResolver != null && (fullnameToFastTagMethod = legacyFastTagResolver.resolveFastTag(tagName))!=null) {
                         generateLegacyFastTagInvocation(tagName, sc, fullnameToFastTagMethod, contentMethodName);
                     } else {
 
                         // look for tag-file
+
+                        // tag names can contain '.' which should be transoformed into '/'
+                        String tagNamePath = tagName.replace('.', '/');
+
+
                         String thisTemplateType = getTemplateType( sc );
                         // look for tag-file with same type/extension as this template
-                        String tagFilePath = "tags/"+tagName + "."+thisTemplateType;
+                        String tagFilePath = "tags/"+tagNamePath + "."+thisTemplateType;
                         if (templateRepo!= null && thisTemplateType != null && templateRepo.templateExists(tagFilePath)) {
                             generateTagFileInvocation( tagFilePath, sc, contentMethodName);
                         } else {
                             // look for tag-file with .tag-extension
-                            tagFilePath = "tags/"+tagName + ".tag";
+                            tagFilePath = "tags/"+tagNamePath + ".tag";
                             if (templateRepo!= null && templateRepo.templateExists(tagFilePath)) {
                                 generateTagFileInvocation( tagFilePath, sc, contentMethodName);
                             } else {
@@ -739,8 +778,10 @@ public class GTPreCompiler {
                 GTFragmentScript s = (GTFragmentScript)f;
                 // first generate groovy method with script code
                 String groovyMethodName = "custom_script_" + (sc.nextMethodIndex++);
-                gout.append(" void "+groovyMethodName+"(out){\n");
+                gout.append(" void "+groovyMethodName+"(java.io.PrintWriter out){\n");
+                //gout.append(sc.pimpStart+"\n");
                 gout.append( s.scriptSource);
+                //gout.append(sc.pimpEnd+"\n");
                 gout.append(" }\n");
 
                 // then generate call to that method from java
@@ -765,6 +806,15 @@ public class GTPreCompiler {
     }
     public Class<? extends GTJavaBase> getJavaBaseClass() {
         return GTJavaBase.class;
+    }
+
+    public List<String> getJavaExtensionClasses() {
+        return Collections.emptyList();
+    }
+
+    // override it to return correct GTLegacyFastTagResolver
+    public GTLegacyFastTagResolver getGTLegacyFastTagResolver() {
+        return null;
     }
 
 }

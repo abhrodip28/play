@@ -26,7 +26,7 @@ public class GTGroovyCompileToClassTest {
                 "}\n" +
                 "}";
 
-        byte[] bytes = new GTGroovyCompileToClass(getClass().getClassLoader()).compileGroovySource(src);
+        //byte[] bytes = new GTGroovyCompileToClass(getClass().getClassLoader()).compileGroovySource(src);
 
         
         int a = 0;

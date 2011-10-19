@@ -16,7 +16,7 @@ public class GTGroovyBase extends Script {
 
     @Override
     public Object run() {
-        throw new RuntimeException("Not supposed to run this method");
+        throw new RuntimeException("This method must be overridden in generated groovy script");
     }
 
     /**
