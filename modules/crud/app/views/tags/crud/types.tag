@@ -15,10 +15,10 @@
     java.util.Collections.sort(models)
 }%
 
-%{ models.eachWithIndex() { item, i -> }%
+#{list items: models, as: 'item'}
 	%{
 		attrs = [:]
 		attrs.put('type', item)
 	}%
     #{doBody vars:attrs /}
-%{ } }%
+#{/list}

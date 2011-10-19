@@ -4,17 +4,17 @@
 </label>
 
 <select id="${field.id}" name="${field.name}">
-        %{ _property.choices.each() { }%
+        #{list items:_property.choices, as: 'c'}
         %{
                 selected = false;
                 if(field.error?.message != 'validation.required') {
-                    selected = it == _value;
+                    selected = c == _value;
                 }
-                label = it.toString()
+                label = c.toString()
 
         }%
-        <option name="${it.name()}" ord="${it.ordinal()}" value="${it.name()}" ${selected ? 'selected="true"'.raw() : ''}>${label}</option>
-        %{ } }%
+        <option name="${c.name()}" ord="${c.ordinal()}" value="${c.name()}" ${selected ? 'selected="true"'.raw() : ''}>${label}</option>
+        #{/list}
 </select>
 
 #{ifError field.name}

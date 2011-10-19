@@ -35,7 +35,7 @@
             </span>
         #{/if}
 
-        %{ for (i in start..end) { }%
+        #{list items: start..end, as: 'i'}
             <span class="page">
                 #{if _caller.page == i}
                     <strong>${i}</strong>
@@ -44,7 +44,7 @@
                     #{a @list().add('page', i).add('search', _caller.params.search).add('orderBy', _caller.orderBy).add('order', _caller.order)}${i}#{/a}
                 #{/else}
             </span>
-        %{ } }%
+        #{/list}
 
         #{if end < nbPages}
             <span class="last">

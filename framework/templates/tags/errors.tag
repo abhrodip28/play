@@ -13,15 +13,18 @@ errors are returned
                 validations = play.data.validation.Validation.errors(_field) 
         } 
         size = validations.size()
+        attrsList = [];
         validations.eachWithIndex() { item, i -> 
                 attrs = [:] 
                 attrs.put('error', item) 
                 attrs.put('error_index', i+1) 
                 attrs.put('error_isLast', (i+1) == size) 
                 attrs.put('error_isFirst', i==0) 
-                attrs.put('error_parity', (i+1)%2==0?'even':'odd') 
-}% 
-        #{doBody vars:attrs /} 
-%{ 
-        } 
-}% 
+                attrs.put('error_parity', (i+1)%2==0?'even':'odd')
+                attrsList.add(attrs)
+        }
+}%
+
+    #{list items:attrsList, as: 'attrs'}
+        #{doBody vars:attrs /}
+    #{/list}

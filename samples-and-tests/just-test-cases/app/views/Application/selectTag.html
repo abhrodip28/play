@@ -13,9 +13,9 @@
 <hr />
 *{Check that the option tag is comparing selected values using toString() method }*
 %{
-	Long longValue = 5;
-	Integer intValue = 5;
-%}
+	longValue = new Long(5);
+	intValue = new Integer(5);
+}%
 valueProperty is a Long object, value is a Long object: #{select 'users', items:users, valueProperty:'k', labelProperty:'name', value:longValue, class:"test", id:'select_long_value_long_sel' /}<br />
 valueProperty is a Long object, value is an Integer object: #{select 'users', items:users, valueProperty:'k', labelProperty:'name', value:intValue, class:"test", id:'select_long_value_int_sel' /}<br />
 

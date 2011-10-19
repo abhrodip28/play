@@ -8,23 +8,23 @@
     #{if _field.multiple}
         <input type="hidden" name="${pName}" value="" />
         <select id="${field.id}" name="${pName}" multiple="yes">
-            %{ _field.choices.each() { }%
+            #{list items: _field.choices, as: 'c'}
             %{
                 selected = false;
                 if(field.error?.message != 'validation.required') {
                     if(params[pName]) {
-                        selected = params.getAll(${pName}).contains(it._key().toString())
+                        selected = params.getAll(${pName}).contains(c._key().toString())
                     } else {
                         for (it2 in _value) {
-                            if(it2._key() == it._key()) {
+                            if(it2._key() == c._key()) {
                                 selected = true;
                             }
                         }
                     }
                 }
             }%
-            <option value="${it._key()}" ${selected ? 'selected="true"'.raw() : ''}>${it}</option>
-            %{ } }%
+            <option value="${c._key()}" ${selected ? 'selected="true"'.raw() : ''}>${c}</option>
+            #{/list}
         </select>
     #{/if}
     #{else}
@@ -35,19 +35,19 @@
             #{else}
                 <option value="">&{'crud.selectValue'}</option>
             #{/else}
-            %{ _field.choices.each() { }%
+            #{list items: _field.choices, as: 'c'}
             %{
                 selected = false
                 if(field.error?.message != 'validation.required') {
                     if(params[pName]) {
-                        selected = (it._key().toString() == params[pName])
+                        selected = (c._key().toString() == params[pName])
                     } else {
-                        selected = it._key() == _value?._key()
+                        selected = c._key() == _value?._key()
                     }
                 }
             }%
-            <option value="${it._key()}" ${selected ? 'selected="true"'.raw() : ''}>${it}</option>
-            %{ } }%
+            <option value="${c._key()}" ${selected ? 'selected="true"'.raw() : ''}>${c}</option>
+            #{/list}
         </select>
     #{/else}
 
