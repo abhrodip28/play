@@ -3,15 +3,22 @@ package play.template2.compile;
 import play.template2.GTTemplateInstanceFactory;
 import play.template2.GTTemplateRepo;
 
+import javax.management.RuntimeErrorException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class GTCompiler {
 
+    public static File srcDestFolder = null;
     private final ClassLoader parentClassloader;
     private final GTTemplateRepo templateRepo;
     private final GTPreCompilerFactory preCompilerFactory;
@@ -55,13 +62,48 @@ public class GTCompiler {
         }
     }
 
+    /**
+     * Write String content to a file (always use utf-8)
+     * @param content The content to write
+     * @param file The file to write
+     */
+    protected static void writeContent(CharSequence content, File file, String encoding) {
+        OutputStream os = null;
+        try {
+            os = new FileOutputStream(file);
+            PrintWriter printWriter = new PrintWriter(new OutputStreamWriter(os, encoding));
+            printWriter.println(content);
+            printWriter.flush();
+            os.flush();
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                if(os != null) os.close();
+            } catch(Exception e) {
+                //
+            }
+        }
+    }
     public CompiledTemplate compile( String templatePath, File templateFile ) {
         // precompile it
         GTPreCompiler.Output precompiled = preCompilerFactory.createCompiler(templateRepo).compile(templatePath, templateFile);
 
         // compile the java code
-        System.out.println("java: \n"+precompiled.javaCode);
-        System.out.println("groovy: \n"+precompiled.groovyCode);
+        //System.out.println("java: \n"+precompiled.javaCode);
+        //System.out.println("groovy: \n"+precompiled.groovyCode);
+
+        if ( srcDestFolder != null) {
+            // store the generated src to disk
+            File folder = new File( srcDestFolder, GTPreCompiler.generatedPackageName.replace('.','/'));
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+            File file = new File( folder, precompiled.javaClassName+".java");
+            writeContent(precompiled.javaCode, file, "utf-8");
+            file = new File( folder, precompiled.groovyClassName+".groovy");
+            writeContent(precompiled.groovyCode, file, "utf-8");
+        }
 
         // compile groovy
         GTJavaCompileToClass.CompiledClass[] groovyClasses = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( precompiled.groovyCode);

@@ -12,9 +12,13 @@ package play.template2
 class a implements Runnable{
 
     void run() {
-        def list = ["a", "b"];
-        list.each() {
-            println( it);
+
+        def m = [1:"a", 2:"b"];
+        println("m: " + m);
+        def i = m.iterator();
+        while( i.hasNext()) {
+            def q = i.next();
+            println( q.getClass());
         }
 
     }

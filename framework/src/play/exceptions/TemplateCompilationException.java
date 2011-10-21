@@ -18,6 +18,11 @@ public class TemplateCompilationException extends TemplateException {
 
     @Override
     public String getErrorDescription() {
-        return String.format("The template <strong>%s</strong> does not compile : <strong>%s</strong>", getTemplate().name, getMessage());
+        Template t = getTemplate();
+        String name = "";
+        if ( t != null) {
+            name = t.name;
+        }
+        return String.format("The template <strong>%s</strong> does not compile : <strong>%s</strong>", name, getMessage());
     }
 }

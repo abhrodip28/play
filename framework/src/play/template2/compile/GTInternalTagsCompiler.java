@@ -1,5 +1,7 @@
 package play.template2.compile;
 
+import play.template2.exceptions.GTCompilationException;
+
 import java.lang.reflect.Method;
 
 /**
@@ -27,7 +29,7 @@ public class GTInternalTagsCompiler {
         try {
             tagMethod.invoke(this, tagName, contentMethodName, sc);
         } catch (Exception e) {
-            throw new RuntimeException("Error generating code for tag '"+tagName+"'");
+            throw new GTCompilationException("Error generating code for tag '"+tagName+"'");
         }
 
         return true;
@@ -35,19 +37,28 @@ public class GTInternalTagsCompiler {
 
     public void tag_list(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
         StringBuilder out = sc.out;
-        out.append(" Collection items = (Collection)tagArgs.get(\"items\");\n");
-        out.append(" if (items == null ) return ;\n");
+
+        // one can else if list is empty - must clear the else flag
+        out.append(" clearElseFlag();\n");
+
+
         out.append(" String as = (String)tagArgs.get(\"as\");\n");
         out.append(" String itemName = (as==null?\"_\":as);\n");
         out.append(" as = (as == null ? \"\" : as);\n");
+
+        out.append(" Object _items = tagArgs.get(\"items\");\n");
+        out.append(" if (_items == null ) _items = tagArgs.get(\"arg\");\n");
+        out.append(" if (_items == null ) return ;\n");
+
         out.append(" int i=0;\n");
-        out.append(" int size=items.size();\n");
-        out.append(" for(Object item : items) {\n");
+        out.append(" Iterator it = convertToIterator(_items);\n");
+        out.append(" while( it.hasNext()) {\n");
         // prepare for next iteration
+        out.append("   Object item = it.next();\n");
         out.append("   i++;\n");
         out.append("   binding.setProperty(itemName, item);\n");
         out.append("   binding.setProperty(as+\"_index\", i);\n");
-        out.append("   binding.setProperty(as+\"_isLast\", i==size);\n");
+        out.append("   binding.setProperty(as+\"_isLast\", !it.hasNext());\n");
         out.append("   binding.setProperty(as+\"_isFirst\", i==1);\n");
         out.append("   binding.setProperty(as+\"_parity\", (i%2==0?\"even\":\"odd\"));\n");
 
@@ -55,6 +66,10 @@ public class GTInternalTagsCompiler {
         out.append("   "+contentMethodName+"();\n");
 
         out.append(" }\n");
+
+        // if we did not iterate over anything, we must set the else-flag so that the next else-block is executed
+        out.append(" if(i==0) { setElseFlag(); }\n");
+
     }
 
 
@@ -121,24 +136,14 @@ public class GTInternalTagsCompiler {
         StringBuilder out = sc.out;
 
         // someone is extending us - and we are supposed to dump the output now..
-        out.append(" if( this.extendingTemplate == null) throw new RuntimeException(\"No template is currently extending this template\");\n");
+        out.append(" if( this.extendingTemplate == null) throw new play.template2.exceptions.GTRuntimeException(\"No template is currently extending this template\");\n");
         // inject all the output from the extending template into our output stream
         out.append(" this.insertOutput(this.extendingTemplate);\n");
 
         // done..
     }
 
-    // used when dumping the content-output when rendering a tag-file / template
-    public void tag_doBody(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc) {
-        StringBuilder out = sc.out;
 
-        // must make sure we actually have content to dump..
-        out.append(" if( this.contentRenderer == null) throw new RuntimeException(\"No body to dump - Are this template used as a tag?\");\n");
-        // render the content and inject all the output into our output stream
-        out.append(" this.insertOutput(this.contentRenderer.render());\n");
-
-        // done..
-    }
 
     protected static void generateContentOutputCapturing( String contentMethodName, String outputVariableName, StringBuilder out) {
         out.append("//generateContentOutputCapturing\n");

@@ -16,5 +16,19 @@ public static void tag_testFastTag(String tagName, GTJavaBase template, Map<Stri
 
 
  */
-public interface GTLegacyFastTagResolver extends GTFastTagResolver {
+public interface GTLegacyFastTagResolver {
+    public static class LegacyFastTagInfo {
+        // Full name to a static method which is responsible of calling the legacy fast tag
+        public final String bridgeFullMethodName;
+        public final String legacyFastTagClassname;
+        public final String legacyFastTagMethodName;
+
+        public LegacyFastTagInfo(String bridgeFullMethodName, String legacyFastTagClassname, String legacyFastTagMethodName) {
+            this.bridgeFullMethodName = bridgeFullMethodName;
+            this.legacyFastTagClassname = legacyFastTagClassname;
+            this.legacyFastTagMethodName = legacyFastTagMethodName;
+        }
+    }
+
+    public LegacyFastTagInfo resolveLegacyFastTag(String tagName);
 }

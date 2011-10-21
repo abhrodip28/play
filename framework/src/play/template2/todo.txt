@@ -1,0 +1,8 @@
+* need better tagcontext - something like the old one but faster
+* improved pimp-support and option
+* Namespace for new fasttags
+* Custom new fasttags
+* error messages
+* always use GT
+* integrate with old so that all "is the same"
+* src and lineno mapping

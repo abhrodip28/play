@@ -1,5 +1,7 @@
 package play.template2;
 
+import play.template2.exceptions.GTRuntimeException;
+
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -21,7 +23,7 @@ public class GTRenderingResult {
             try {
                 os.write(s.getBuffer().toString().getBytes(encoding));
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new GTRuntimeException(e);
             }
         }
     }

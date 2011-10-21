@@ -54,12 +54,12 @@ public class GTContentRendererFakeClosure extends Closure {
 
     @Override
     public Object getProperty(String property) {
-        throw new RuntimeException("Not implemented");
+        return contentRenderer.getRuntimeProperty(property);
     }
 
     @Override
     public void setProperty(String property, Object newValue) {
-        throw new RuntimeException("Not implemented");
+        contentRenderer.setRuntimeProperty(property, newValue);
     }
 
     @Override

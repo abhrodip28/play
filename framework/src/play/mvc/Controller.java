@@ -20,6 +20,8 @@ import play.data.validation.ValidationPlugin;
 import play.exceptions.ContinuationsException;
 import play.exceptions.NoRouteFoundException;
 import play.exceptions.PlayException;
+import play.exceptions.TemplateCompilationException;
+import play.exceptions.TemplateExecutionException;
 import play.exceptions.TemplateNotFoundException;
 import play.exceptions.UnexpectedException;
 import play.i18n.Lang;
@@ -46,6 +48,9 @@ import play.mvc.results.RenderXml;
 import play.mvc.results.Result;
 import play.mvc.results.Unauthorized;
 import play.template2.GTJavaBase;
+import play.template2.exceptions.GTCompilationException;
+import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
+import play.template2.exceptions.GTRuntimeException;
 import play.template2.exceptions.GTTemplateNotFound;
 import play.templates.Template;
 import play.templates.TemplateLoader;
@@ -674,8 +679,17 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
                 template = Play.templateRepo.getTemplateInstance( templatePath );
             } catch ( GTTemplateNotFound e) {
                 throw new TemplateNotFoundException(e.templatePath);
+            } catch (GTCompilationExceptionWithSourceInfo e) {
+                throw new TemplateCompilationException(null, e.lineNo, e.specialMessage);
+            } catch (GTCompilationException e) {
+                throw new TemplateCompilationException(null, 0, e.getMessage());
             }
-            throw new RenderTemplateGT( template, templateBinding.data);
+
+            try {
+                throw new RenderTemplateGT( template, templateBinding.data);
+            } catch (GTRuntimeException e){
+                throw new TemplateExecutionException(null, 1, e.getMessage(), e);
+            }
         }
 
 

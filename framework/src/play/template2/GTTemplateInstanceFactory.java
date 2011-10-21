@@ -3,6 +3,7 @@ package play.template2;
 
 import play.template2.compile.GTCompiler;
 import play.template2.compile.GTJavaCompileToClass;
+import play.template2.exceptions.GTException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -46,7 +47,7 @@ public class GTTemplateInstanceFactory {
         try {
             this.templateClass = (Class<? extends GTJavaBase>)cl.loadClass(compiledTemplate.templateClassName);
         } catch (Exception e) {
-            throw new RuntimeException("Error creating template class instance", e);
+            throw new GTException("Error creating template class instance", e);
         }
     }
 
@@ -56,7 +57,7 @@ public class GTTemplateInstanceFactory {
             templateInstance = (GTJavaBase)templateClass.newInstance();
             return templateInstance;
         } catch (Exception e) {
-            throw new RuntimeException("Error creating template instance", e);
+            throw new GTException("Error creating template instance", e);
         }
     }
 }

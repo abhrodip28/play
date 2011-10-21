@@ -17,6 +17,8 @@ import org.eclipse.jdt.internal.compiler.env.NameEnvironmentAnswer;
 import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
 import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
 import play.exceptions.UnexpectedException;
+import play.template2.exceptions.GTCompilationException;
+import play.template2.exceptions.GTRuntimeException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -116,7 +118,7 @@ public class GTJavaCompileToClass {
             }
             return baos.toByteArray();
         } catch(IOException e) {
-            throw new UnexpectedException(e);
+            throw new GTCompilationException(e);
         }
     }
 
@@ -139,8 +141,7 @@ public class GTJavaCompileToClass {
                         // Non sense !
                         message = problem.getArguments()[0] + " cannot be resolved";
                     }
-                    //throw new CompilationException(Play.classes.getApplicationClass(className).javaFile, message, problem.getSourceLineNumber(), problem.getSourceStart(), problem.getSourceEnd());
-                    throw new RuntimeException("Compile error. classname: " + className + ". message: " + message + " ln: " + problem.getSourceLineNumber() +" st: " + problem.getSourceStart() + " se: " + problem.getSourceEnd());
+                    throw new GTCompilationException("Compile error. classname: " + className + ". message: " + message + " ln: " + problem.getSourceLineNumber());
                 }
             }
             // Something has been compiled

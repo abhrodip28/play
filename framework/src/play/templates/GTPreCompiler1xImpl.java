@@ -77,7 +77,7 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
             code = " out.append(g."+groovyMethodName+"());";
         }
 
-        return new GTFragmentCode(code);
+        return new GTFragmentCode(sc.currentLineNo +1, code);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package play.exceptions;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import play.templates.Template;
@@ -33,10 +34,18 @@ public abstract class TemplateException extends PlayException implements SourceA
     }
 
     public List<String> getSource() {
-        return Arrays.asList(template.source.split("\n"));
+        if ( template != null) {
+            return Arrays.asList(template.source.split("\n"));
+        } else {
+            // return fake source
+            List<String> lines = new ArrayList<String>();
+            lines.add( "");
+            return lines;
+        }
+
     }
 
     public String getSourceFile() {
-        return template.name;
+        return (template == null ? "unknown source file" : template.name);
     }
 }

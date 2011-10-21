@@ -2,6 +2,7 @@ package play.templates;
 
 import play.Play;
 import play.data.validation.Validation;
+import play.i18n.Messages;
 import play.mvc.Router;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
@@ -33,5 +34,10 @@ public abstract class GTJavaBase1xImpl extends GTJavaBase {
     @Override
     public boolean validationHasError(String key) {
         return Validation.hasError( key );
+    }
+
+    @Override
+    public String messagesGet(Object key, Object... args) {
+        return Messages.get(key, args);
     }
 }

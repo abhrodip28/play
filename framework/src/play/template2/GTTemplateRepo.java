@@ -2,6 +2,8 @@ package play.template2;
 
 import play.template2.compile.GTCompiler;
 import play.template2.compile.GTPreCompilerFactory;
+import play.template2.exceptions.GTCompilationException;
+import play.template2.exceptions.GTException;
 import play.template2.exceptions.GTTemplateNotFound;
 
 import java.io.File;
@@ -56,17 +58,17 @@ public class GTTemplateRepo {
     public GTTemplateRepo(ClassLoader parentClassLoader, boolean checkForChanges, GTIntegration integration, GTPreCompilerFactory preCompilerFactory) {
         this.parentClassLoader = parentClassLoader;
         if (parentClassLoader== null) {
-            throw new RuntimeException("parentClassLoader cannot be null");
+            throw new GTException("parentClassLoader cannot be null");
         }
         this.checkForChanges = checkForChanges;
         this.integration = integration;
         if (integration== null) {
-            throw new RuntimeException("integration cannot be null");
+            throw new GTException("integration cannot be null");
         }
 
         this.preCompilerFactory = preCompilerFactory;
         if ( preCompilerFactory ==null ) {
-            throw new RuntimeException("preCompilerFactory cannot be null");
+            throw new GTException("preCompilerFactory cannot be null");
         }
     }
 
@@ -117,7 +119,7 @@ public class GTTemplateRepo {
                         throw e;
                     } catch (Exception e) {
                         // Must only store it if no error occurs
-                        throw new RuntimeException(e);
+                        throw new GTCompilationException(e);
                     }
 
                     // store it
@@ -132,7 +134,7 @@ public class GTTemplateRepo {
         }
 
         if (ti == null) {
-            throw new RuntimeException("Not supposed to happen - no template...");
+            throw new GTException("Not supposed to happen - no template...");
         }
 
         // already compile and unchanged - lets return the template instance

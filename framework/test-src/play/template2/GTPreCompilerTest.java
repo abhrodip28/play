@@ -1,8 +1,8 @@
 package play.template2;
 
 import org.junit.Test;
-import play.template2.compile.GTCompilerException;
 import play.template2.compile.GTPreCompiler;
+import play.template2.exceptions.GTCompilationException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -84,7 +84,7 @@ public class GTPreCompilerTest {
         printOutput( file, out);
     }
 
-    @Test(expected = GTCompilerException.class)
+    @Test(expected = GTCompilationException.class)
     public void testCompile_simpleTags_withError() throws Exception {
         File file = new File("test-src/play/template2/template2_withError.html");
         assertThat(file.exists()).isTrue();
@@ -92,7 +92,7 @@ public class GTPreCompilerTest {
         printOutput( file, out);
     }
 
-    @Test(expected = GTCompilerException.class)
+    @Test(expected = GTCompilationException.class)
     public void testCompile_simpleTags_withError2() throws Exception {
         File file = new File("test-src/play/template2/template2_withError2.html");
         assertThat(file.exists()).isTrue();

@@ -2,13 +2,19 @@ package play.template2;
 
 import groovy.lang.Binding;
 import groovy.lang.Script;
+import org.apache.commons.collections.iterators.ArrayIterator;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import play.template2.exceptions.GTException;
+import play.template2.exceptions.GTRuntimeException;
 
 import java.io.OutputStream;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,7 +31,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public StringWriter out;
 
     protected Script groovyScript = null;
-    protected Binding binding;
+    public Binding binding;
     private final Class<? extends GTGroovyBase> groovyClass;
 
     protected Map<String, Object> orgArgs = null;
@@ -93,11 +99,19 @@ public abstract class GTJavaBase extends GTRenderingResult {
     }
 
     public void renderTemplate(Map<String, Object> args) {
-        renderTemplate(args, null);
+        try {
+            renderTemplate(args, null);
+        } catch ( GTRuntimeException e) {
+            // just throw it
+            throw e;
+        } catch ( Throwable e) {
+            // wrap it in a GTRuntimeException
+            throw new GTRuntimeException(e);
+        }
     }
 
     // existingVisitedTagNameCounter must be the same used by the calling template if using template as tag
-    public void renderTemplate(Map<String, Object> args, Map<String, Integer> existingVisitedTagNameCounter) {
+    protected void renderTemplate(Map<String, Object> args, Map<String, Integer> existingVisitedTagNameCounter) {
 
         if ( existingVisitedTagNameCounter == null) {
             this.visitedTagNameCounter = new HashMap<String, Integer>();
@@ -111,7 +125,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
         // must init our groovy script
 
         groovyScript = InvokerHelper.createScript(groovyClass, binding);
-        groovyScript.setProperty(GTGroovyBase.__TemplatePath_propertyName, templatePath);
+        // create a property in groovy so that groovy can find us (this)
+        groovyScript.setProperty(GTGroovyBase.__templateRef_propertyName, this);
 
         if ( existingVisitedTagNameCounter == null) {
             templateRepo.integration.renderingStarted();
@@ -199,7 +214,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         return false;
     }
 
-    protected void invokeTagFile(String tagFilePath, GTContentRenderer contentRenderer, Map<String, Object> tagArgs) {
+    protected void invokeTagFile(String tagName, String tagFilePath, GTContentRenderer contentRenderer, Map<String, Object> tagArgs) {
 
         GTJavaBase tagTemplate = templateRepo.getTemplateInstance(tagFilePath);
         // must set contentRenderes so that when the tag/template calls doBody, we can inject the output of the content of this tag
@@ -211,11 +226,17 @@ public abstract class GTJavaBase extends GTRenderingResult {
         // and all scoped variables under _caller
         completeTagArgs.put("_caller", this.binding.getVariables());
 
+        // TODO: Must handle tag args like  _:_
+
         // and of course the tag args:
         // must prefix all tag args with '_'
         for ( String key : tagArgs.keySet()) {
             completeTagArgs.put("_"+key, tagArgs.get(key));
         }
+
+        // Must also add all tag-args (the map) with original names as a new value named '_attrs'
+        completeTagArgs.put("_attrs", tagArgs);
+
         tagTemplate.renderTemplate(completeTagArgs, this.visitedTagNameCounter);
         //grab the output
         insertOutput( tagTemplate );
@@ -224,12 +245,16 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     // must be overridden by play framework
     public boolean validationHasErrors() {
-        throw new RuntimeException("Not implemented by default. Must be overridden by framework impl");
+        throw new GTException("Not implemented by default. Must be overridden by framework impl");
     }
 
     // must be overridden by play framework
     public boolean validationHasError(String key) {
-        throw new RuntimeException("Not implemented by default. Must be overridden by framework impl");
+        throw new GTException("Not implemented by default. Must be overridden by framework impl");
+    }
+
+    public String messagesGet(Object key, Object... args) {
+        throw new GTException("Not implemented by default. Must be overridden by framework impl");
     }
 
     public void clearElseFlag() {
@@ -242,5 +267,57 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     public boolean elseFlagIsSet() {
         return runNextElse.contains(tlid);
+    }
+    
+    protected String handleMessageTag(Object _args) {
+
+        List argsList = (List)_args;
+
+        if ( argsList.size()==0) {
+            throw new GTRuntimeException("It looks like you don't have anything in your Message tag");
+        }
+        Object key = argsList.get(0);
+        if (key==null) {
+            throw new GTRuntimeException("You are trying to resolve a message with an expression " +
+                    "that is resolved to null - " +
+                    "have you forgotten quotes around the message-key?");
+        }
+        if (argsList.size() == 1) {
+            String m = messagesGet(key);
+            return m;
+        } else {
+            // extract args from val
+            Object[] args = new Object[argsList.size()-1];
+            for( int i=1;i<argsList.size();i++) {
+                args[i-1] = argsList.get(i);
+            }
+            String m = messagesGet(key, args);
+            return m;
+        }
+    }
+
+    protected Iterator convertToIterator(final Object o) {
+
+        if ( o instanceof Iterator) {
+            return (Iterator)o;
+        }
+
+        if ( o instanceof Iterable ) {
+            return ((Iterable)o).iterator();
+        }
+
+        if ( o instanceof Map ) {
+            return (((Map)o).entrySet()).iterator();
+        }
+
+        if ( o.getClass().isArray()) {
+            return new Iterable() {
+                public Iterator iterator() {
+                    return new ArrayIterator(o);
+                }
+            }.iterator();
+        }
+
+        throw new GTRuntimeException("Cannot convert object-reference to Iterator");
     }
 }

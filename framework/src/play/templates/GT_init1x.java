@@ -1,6 +1,8 @@
 package play.templates;
 
+import play.Play;
 import play.template2.GTDefaultTemplateFileResolver;
+import play.template2.compile.GTCompiler;
 import play.vfs.VirtualFile;
 
 import java.io.File;
@@ -22,5 +24,9 @@ public class GT_init1x {
         }
 
         GTDefaultTemplateFileResolver.templateFolders = folders;
+
+        // set up folder where we dump generated src
+        GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");
+
     }
 }

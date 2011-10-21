@@ -1,0 +1,18 @@
+groovy changes:
+
+----------
+not use code flow structures like:
+%{
+if(expression) {
+}%
+
+------------
+Don't use def for vars in groovy code snipits if other parts of script should see it.
+
+The same goes for type-declarations:
+Long longValue = 5;
+
+instead use:
+longValue = new Long(5);
+
+

@@ -6,13 +6,16 @@ import play.mvc.Http;
 import play.template2.GTContentRenderer;
 import play.template2.GTFastTagResolver;
 import play.template2.GTJavaBase;
+import play.template2.exceptions.GTRuntimeException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -29,7 +32,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
         try {
             Method m = getClass().getMethod("tag_"+tagName,GTJavaBase.class, Map.class, GTContentRenderer.class);
             if (!Modifier.isStatic(m.getModifiers())) {
-                throw new RuntimeException("A fast-tag method must be static: " + m);
+                throw new GTRuntimeException("A fast-tag method must be static: " + m);
             }
         } catch( NoSuchMethodException e) {
             // not found
@@ -51,7 +54,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
         String key = args.get("arg").toString();
         if ( key == null) {
-            throw new RuntimeException("Specify a variable name when using #{get/}");
+            throw new GTRuntimeException("Specify a variable name when using #{get/}");
         }
 
         // we must get from the template that extended us.
@@ -98,7 +101,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
             try {
                 value = out.toString(encoding);
             } catch (UnsupportedEncodingException e) {
-                throw new RuntimeException(e);
+                throw new GTRuntimeException(e);
             }
         }
 
@@ -126,7 +129,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
     public static void tag_ifError(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
         Object key = args.get("arg");
         if (key==null) {
-            throw new RuntimeException("Please specify the error key");
+            throw new GTRuntimeException("Please specify the error key");
         }
         if ( template.validationHasError(key.toString())) {
             template.clearElseFlag();
@@ -139,7 +142,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
     public static void tag_include(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
         if (!args.containsKey("arg") || args.get("arg") == null) {
-            throw new RuntimeException("Specify a template name");
+            throw new GTRuntimeException("Specify a template name");
         }
         String name = args.get("arg").toString();
         if (name.startsWith("./")) {
@@ -158,6 +161,59 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
         newTemplate.renderTemplate(newArgs);
         template.insertOutput( newTemplate );
+    }
+
+    public static void tag_doBody(GTJavaBase template, Map<String, Object> args, GTContentRenderer _content ) {
+
+        // the content we're supposed to output here is the body-content inside the tag we're now in.
+        // we must not output the body of the doBody-tag it self.
+        // output this: template.contentRenderer
+
+
+        // if we have an arg named "vars" which is a map, then
+        // we should inject the key->values in var into args to body.
+        // if the org value of the key, is null, we should restore the value after we have rendered.
+        Map<String, Object> vars = (Map<String, Object>)args.get("vars");
+
+        Set<String> propertiesToResetToNull = new HashSet<String>();
+
+        if ( vars != null) {
+            for (Map.Entry<String, Object> e : vars.entrySet()) {
+                String key = e.getKey();
+                if ( template.contentRenderer.getRuntimeProperty(key) == null ) {
+                    // this one should reseted after rendering
+                    propertiesToResetToNull.add( key);
+                }
+                // set the value
+                template.contentRenderer.setRuntimeProperty(key, e.getValue());
+            }
+        }
+
+        String as = (String)args.get("as");
+
+
+        if ( as == null ) {
+            // render body right now
+            template.insertOutput(template.contentRenderer.render());
+        } else {
+            // render body to string and store it with the name in as
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            template.contentRenderer.render().writeOutput(out, "utf-8");
+            String contentString;
+            try {
+                contentString = out.toString("utf-8");
+            } catch (UnsupportedEncodingException e) {
+                throw new GTRuntimeException(e);
+            }
+            template.binding.setProperty(as, contentString);
+
+        }
+
+        // do we have anything to reset?
+        for ( String key : propertiesToResetToNull) {
+            template.contentRenderer.setRuntimeProperty(key, null);
+        }
+
     }
 
 }

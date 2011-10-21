@@ -1,57 +1,110 @@
 package play.templates;
 
 import groovy.lang.Closure;
+import play.Play;
+import play.classloading.ApplicationClasses;
+import play.classloading.ApplicationClassloaderState;
 import play.template2.GTJavaBase;
 import play.template2.legacy.GTLegacyFastTagResolver;
 
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GTLegacyFastTagResolver1X implements GTLegacyFastTagResolver {
 
+    private static class LegacyFastTag {
+        public final String className;
+        public final String methodName;
+
+        private LegacyFastTag(String className, String methodName) {
+            this.className = className;
+            this.methodName = methodName;
+        }
+    }
+
+    private static Object lock = new Object();
+    private static ApplicationClassloaderState _lastKnownApplicationClassloaderState = null;
+    private static Map<String, LegacyFastTag> _tagName2FastTag = new HashMap<String, LegacyFastTag>();
+
     static Class fc = FastTags.class;
 
-    public String resolveFastTag(String tagName) {
+    private static Map<String, LegacyFastTag> getTagName2FastTag() {
+        synchronized (lock) {
+            if (_lastKnownApplicationClassloaderState == null || !_lastKnownApplicationClassloaderState.equals(Play.classloader.currentState)) {
+                // must reload
+                _tagName2FastTag = new HashMap<String, LegacyFastTag>();
+                _lastKnownApplicationClassloaderState = Play.classloader.currentState;
 
+                // find all FastTag-classes
+                List<ApplicationClasses.ApplicationClass> _fastTagClasses = Play.classes.getAssignableClasses( FastTags.class );
 
-        if (findTagMethod(tagName) == null) {
-            return null;
+                List<Class> classes = new ArrayList<Class>(_fastTagClasses.size()+1);
+                classes.add( FastTags.class);
+                for (ApplicationClasses.ApplicationClass appClass : _fastTagClasses) {
+                    classes.add( appClass.javaClass);
+                }
+
+                for (Class clazz : classes) {
+                    FastTags.Namespace namespace = (FastTags.Namespace)clazz.getAnnotation(FastTags.Namespace.class);
+                    String namespacePrefix = "";
+                    if ( namespace != null ) {
+                        namespacePrefix = namespace.value() + ".";
+                    }
+                    for ( Method m : clazz.getMethods()) {
+
+                        if (m.getName().startsWith("_") && Modifier.isStatic(m.getModifiers()) ) {
+                            String tagName = namespacePrefix + m.getName().substring(1);
+                            _tagName2FastTag.put(tagName, new LegacyFastTag(clazz.getName(), m.getName()));
+                        }
+                    }
+                }
+
+            }
+            return _tagName2FastTag;
+
         }
+    }
 
+    public static String getFullNameToBridgeMethod() {
         return GTLegacyFastTagResolver1X.class.getName() + ".legacyFastTagBridge";
     }
 
-    public static void legacyFastTagBridge(String tagName, GTJavaBase template, Map<String, Object> args, Closure body ) {
-        Method m = findTagMethod(tagName);
-        if (m == null) {
-            throw new RuntimeException("Did not find the legacy fastTag method for " + tagName );
+    public LegacyFastTagInfo resolveLegacyFastTag(String tagName) {
+
+        LegacyFastTag tag = getTagName2FastTag().get(tagName);
+
+        if (tag == null ) {
+            return null;
         }
 
-        PrintWriter out = new PrintWriter( template.out );
-        GroovyTemplate.ExecutableTemplate executableTemplate = null;
-        int fromLine = 0;
+        return new LegacyFastTagInfo(getFullNameToBridgeMethod(), tag.className, tag.methodName);
 
-        try {
-            m.invoke(null, args, body, out, executableTemplate, fromLine);
-        } catch (Exception e) {
-            throw new RuntimeException("Error when executing lecacy fastTag " + tagName, e);
-        }
     }
 
-    private static Method findTagMethod(String tagName) {
-        // look for a method named _tagName using the old 1.x fasttag-format
-        Method m;
+    public static void legacyFastTagBridge(String legacyFastTagClassName, String legacyFastTagMethodName, GTJavaBase template, Map<String, Object> args, Closure body ) {
         try {
-            m = fc.getMethod("_"+tagName,Map.class, Closure.class, PrintWriter.class, GroovyTemplate.ExecutableTemplate.class, Integer.TYPE);
+
+            // get the class with the fasttag method on
+            Class clazz = Play.classloader.loadClass(legacyFastTagClassName);
+            // get the method
+            Method m = clazz.getMethod(legacyFastTagMethodName,Map.class, Closure.class, PrintWriter.class, GroovyTemplate.ExecutableTemplate.class, Integer.TYPE);
             if (!Modifier.isStatic(m.getModifiers())) {
                 throw new RuntimeException("A fast-tag method must be static: " + m);
             }
+
+            PrintWriter out = new PrintWriter( template.out );
+            GroovyTemplate.ExecutableTemplate executableTemplate = null;
+            int fromLine = 0;
+
+            m.invoke(null, args, body, out, executableTemplate, fromLine);
         } catch (Exception e) {
-            // not found
-            return null;
+            throw new RuntimeException("Error when executing lecacy fastTag " + legacyFastTagClassName+"."+legacyFastTagMethodName, e);
         }
-        return m;
     }
+
 }
