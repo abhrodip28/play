@@ -6,10 +6,11 @@ import org.apache.commons.collections.iterators.ArrayIterator;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import play.template2.exceptions.GTException;
 import play.template2.exceptions.GTRuntimeException;
+import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.io.StringWriter;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,13 +60,17 @@ public abstract class GTJavaBase extends GTRenderingResult {
     protected Map<String, Integer> visitedTagNameCounter = new HashMap<String, Integer>();
 
     public final String templatePath;
+    public final File templateFile;
+
 
     // Can be used by fastTags to communicate between multiple tags..
     public final Map<Object, Object> customData = new HashMap<Object, Object>();
 
-    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, String templatePath ) {
+    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, String templatePath, File templateFile ) {
         this.groovyClass = groovyClass;
         this.templatePath = templatePath;
+        this.templateFile = templateFile;
+
         initNewOut();
 
     }
@@ -98,9 +103,11 @@ public abstract class GTJavaBase extends GTRenderingResult {
         allOuts.add(out);
     }
 
-    public void renderTemplate(Map<String, Object> args) {
+    public void renderTemplate(Map<String, Object> args) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException{
         try {
             renderTemplate(args, null);
+        } catch( GTTemplateNotFoundWithSourceInfo e) {
+            throw e;
         } catch ( GTRuntimeException e) {
             // just throw it
             throw e;

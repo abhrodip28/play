@@ -10,9 +10,9 @@ import play.mvc.Http;
 import play.mvc.Router;
 import play.plugins.PluginCollection;
 import play.template2.GTTemplateRepo;
-import play.templates.GTIntegration1X;
-import play.templates.GT_init1x;
 import play.templates.TemplateLoader;
+import play.templates.gt_integration.GTIntegration1X;
+import play.templates.gt_integration.GT_init1x;
 import play.utils.OrderSafeProperties;
 import play.vfs.VirtualFile;
 

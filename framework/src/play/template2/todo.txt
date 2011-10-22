@@ -6,3 +6,4 @@
 * always use GT
 * integrate with old so that all "is the same"
 * src and lineno mapping
+* port all fasttags

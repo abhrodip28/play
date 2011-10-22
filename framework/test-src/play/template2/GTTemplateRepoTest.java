@@ -1,9 +1,7 @@
 package play.template2;
 
 import org.junit.Test;
-import play.template2.compile.GTPreCompiler;
-import play.templates.GTIntegration1X;
-import play.templates.GTLegacyFastTagResolver1X;
+import play.templates.gt_integration.GTIntegration1X;
 
 import java.io.File;
 import java.util.Date;

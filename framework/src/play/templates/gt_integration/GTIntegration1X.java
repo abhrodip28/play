@@ -1,9 +1,11 @@
-package play.templates;
+package play.templates.gt_integration;
 
 import play.template2.GTIntegration;
 import play.template2.GTTemplateRepo;
 import play.template2.compile.GTPreCompiler;
 import play.template2.compile.GTPreCompilerFactory;
+import play.templates.BaseTemplate;
+import play.templates.TagContext;
 import play.utils.HTML;
 
 public class GTIntegration1X implements GTIntegration

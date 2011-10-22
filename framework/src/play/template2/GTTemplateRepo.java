@@ -3,6 +3,7 @@ package play.template2;
 import play.template2.compile.GTCompiler;
 import play.template2.compile.GTPreCompilerFactory;
 import play.template2.exceptions.GTCompilationException;
+import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.exceptions.GTException;
 import play.template2.exceptions.GTTemplateNotFound;
 
@@ -116,6 +117,8 @@ public class GTTemplateRepo {
 
                         ti = new TemplateInfo(file, templateInstanceFactory);
                     } catch(GTTemplateNotFound e) {
+                        throw e;
+                    } catch(GTCompilationExceptionWithSourceInfo e) {
                         throw e;
                     } catch (Exception e) {
                         // Must only store it if no error occurs

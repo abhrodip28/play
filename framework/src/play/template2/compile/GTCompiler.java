@@ -3,7 +3,6 @@ package play.template2.compile;
 import play.template2.GTTemplateInstanceFactory;
 import play.template2.GTTemplateRepo;
 
-import javax.management.RuntimeErrorException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,6 +14,8 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class GTCompiler {
 
@@ -52,6 +53,52 @@ public class GTCompiler {
         }
     }
 
+    public static class LineMapper {
+
+        private final Integer[] lineLookup;
+
+        public LineMapper(String[] preCompiledLines) {
+            this.lineLookup = generateLineLookup(preCompiledLines);
+        }
+
+        public int translateLineNo(int originalLineNo) {
+            int line = originalLineNo - 1; // make it 0-based
+            if (line >= lineLookup.length) {
+                line = lineLookup.length-1;
+            }
+
+            // start at line. if value, return it, if not go one up and check again
+            while ( line >= 0) {
+                Integer i = lineLookup[line];
+                if ( i != null) {
+                    return i;
+                }
+                line--;
+            }
+            return 1;
+        }
+
+        private static final Pattern lineNoP = Pattern.compile(".*//lineNo:(\\d+)$");
+
+        // Returns array with one int pr line in the precompile src.
+        // each int (if not null) points to the corresponding line in the original template src
+        // to convert a line, look up at src line-1 and read out the correct line.
+        // if you find null, just walk up until you find a line
+        private Integer[] generateLineLookup(String[] precompiledSrcLines) {
+            Integer[] mapping = new Integer[precompiledSrcLines.length];
+            int i=0;
+            for ( String line : precompiledSrcLines ) {
+                Matcher m = lineNoP.matcher(line);
+                if ( m.find()) {
+                    mapping[i] = Integer.parseInt( m.group(1));
+                }
+                i++;
+            }
+            return mapping;
+        }
+
+    }
+
     public static class CompiledTemplate {
         public final String templateClassName;
         public final GTJavaCompileToClass.CompiledClass[] compiledJavaClasses;
@@ -85,9 +132,15 @@ public class GTCompiler {
             }
         }
     }
+
     public CompiledTemplate compile( String templatePath, File templateFile ) {
         // precompile it
         GTPreCompiler.Output precompiled = preCompilerFactory.createCompiler(templateRepo).compile(templatePath, templateFile);
+
+        String[] javaLines = precompiled.javaCode.split("\n");
+        LineMapper javaLineMapping = new LineMapper( javaLines);
+        String[] groovyLines = precompiled.groovyCode.split("\n");
+        LineMapper groovyLineMapping = new LineMapper( groovyLines);
 
         // compile the java code
         //System.out.println("java: \n"+precompiled.javaCode);
@@ -106,7 +159,7 @@ public class GTCompiler {
         }
 
         // compile groovy
-        GTJavaCompileToClass.CompiledClass[] groovyClasses = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( precompiled.groovyCode);
+        GTJavaCompileToClass.CompiledClass[] groovyClasses = groovyClasses = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( templateFile, groovyLineMapping, precompiled.groovyCode);
 
         // Create Classloader witch includes our groovy class
         GTTemplateInstanceFactory.CL cl = new GTTemplateInstanceFactory.CL(parentClassloader, groovyClasses);

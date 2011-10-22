@@ -1,4 +1,4 @@
-package play.templates;
+package play.templates.gt_integration;
 
 import play.Play;
 import play.data.validation.Validation;
@@ -7,10 +7,12 @@ import play.mvc.Router;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
 
+import java.io.File;
+
 public abstract class GTJavaBase1xImpl extends GTJavaBase {
 
-    public GTJavaBase1xImpl(Class<? extends GTGroovyBase> groovyClass, String templatePath) {
-        super(groovyClass, templatePath);
+    public GTJavaBase1xImpl(Class<? extends GTGroovyBase> groovyClass, String templatePath, File templateFile) {
+        super(groovyClass, templatePath, templateFile);
     }
 
     // add extra methods used when resolving actions

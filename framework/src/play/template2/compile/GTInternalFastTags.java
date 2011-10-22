@@ -1,7 +1,5 @@
 package play.template2.compile;
 
-import play.exceptions.TagInternalException;
-import play.exceptions.TemplateExecutionException;
 import play.mvc.Http;
 import play.template2.GTContentRenderer;
 import play.template2.GTFastTagResolver;
@@ -215,5 +213,6 @@ public class GTInternalFastTags implements GTFastTagResolver {
         }
 
     }
+
 
 }

@@ -1,4 +1,4 @@
-package play.templates;
+package play.templates.gt_integration;
 
 import groovy.lang.Closure;
 import play.Play;
@@ -6,6 +6,8 @@ import play.classloading.ApplicationClasses;
 import play.classloading.ApplicationClassloaderState;
 import play.template2.GTJavaBase;
 import play.template2.legacy.GTLegacyFastTagResolver;
+import play.templates.FastTags;
+import play.templates.GroovyTemplate;
 
 import java.io.PrintWriter;
 import java.lang.reflect.Method;

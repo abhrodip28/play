@@ -52,8 +52,10 @@ import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.exceptions.GTRuntimeException;
 import play.template2.exceptions.GTTemplateNotFound;
+import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import play.templates.Template;
 import play.templates.TemplateLoader;
+import play.templates.gt_integration.TemplateGTWrapper;
 import play.utils.Default;
 import play.utils.Java;
 import play.vfs.VirtualFile;
@@ -680,13 +682,17 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
             } catch ( GTTemplateNotFound e) {
                 throw new TemplateNotFoundException(e.templatePath);
             } catch (GTCompilationExceptionWithSourceInfo e) {
-                throw new TemplateCompilationException(null, e.lineNo, e.specialMessage);
+                //e.printStackTrace();
+                throw new TemplateCompilationException( new TemplateGTWrapper(e.templatePath), e.lineNo, e.specialMessage);
             } catch (GTCompilationException e) {
-                throw new TemplateCompilationException(null, 0, e.getMessage());
+                //e.printStackTrace();
+                throw new TemplateCompilationException( null, 0, e.getMessage());
             }
 
             try {
                 throw new RenderTemplateGT( template, templateBinding.data);
+            } catch ( GTTemplateNotFoundWithSourceInfo e) {
+                throw new TemplateNotFoundException(e.templatePath, new TemplateGTWrapper(e.srcFile), e.lineNo);
             } catch (GTRuntimeException e){
                 throw new TemplateExecutionException(null, 1, e.getMessage(), e);
             }

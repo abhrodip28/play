@@ -1,4 +1,4 @@
-package play.templates;
+package play.templates.gt_integration;
 
 import play.Play;
 import play.template2.GTGroovyBase;
@@ -6,6 +6,7 @@ import play.template2.GTJavaBase;
 import play.template2.GTTemplateRepo;
 import play.template2.compile.GTPreCompiler;
 import play.template2.legacy.GTLegacyFastTagResolver;
+import play.templates.JavaExtensions;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,22 +63,21 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
             // we return the java code snipit that will get the result from the groovy method, then print the result
 
             // generate groovy code
-            StringBuilder gout = sc.gout;
             String groovyMethodName = "action_resolver_" + (sc.nextMethodIndex++);
 
-            gout.append(" String " + groovyMethodName + "() {\n");
+            sc.gprintln(" String " + groovyMethodName + "() {", sc.currentLineNo + 1);
             if (absolute) {
-                gout.append(" return actionBridge._abs()." + action + ";\n");
+                sc.gprintln(" return actionBridge._abs()." + action + ";", sc.currentLineNo+1);
             } else {
-                gout.append(" return actionBridge." + action + ";\n");
+                sc.gprintln(" return actionBridge." + action + ";", sc.currentLineNo + 1);
             }
-            gout.append(" }\n");
+            sc.gprintln(" }", sc.currentLineNo + 1);
 
             // generate java code that prints it
             code = " out.append(g."+groovyMethodName+"());";
         }
 
-        return new GTFragmentCode(sc.currentLineNo +1, code);
+        return new GTFragmentCode(sc.currentLineNo, code);
     }
 
     @Override

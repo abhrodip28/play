@@ -1,9 +1,10 @@
-package play.templates;
+package play.templates.gt_integration;
 
 import groovy.lang.MissingPropertyException;
 import play.Play;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
+import play.templates.GroovyTemplate;
 
 public class GTGroovyBase1xImpl extends GTGroovyBase {
 

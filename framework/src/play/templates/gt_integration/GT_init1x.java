@@ -1,4 +1,4 @@
-package play.templates;
+package play.templates.gt_integration;
 
 import play.Play;
 import play.template2.GTDefaultTemplateFileResolver;
