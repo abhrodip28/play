@@ -4,6 +4,7 @@ import groovy.lang.Binding;
 import groovy.lang.Script;
 import org.apache.commons.collections.iterators.ArrayIterator;
 import org.codehaus.groovy.runtime.InvokerHelper;
+import play.template2.compile.GTCompiler;
 import play.template2.exceptions.GTException;
 import play.template2.exceptions.GTRuntimeException;
 import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
@@ -66,6 +67,10 @@ public abstract class GTJavaBase extends GTRenderingResult {
     // Can be used by fastTags to communicate between multiple tags..
     public final Map<Object, Object> customData = new HashMap<Object, Object>();
 
+
+    // this gets a value (injected) after the template is new'ed - contains line-mapping info
+    public GTCompiler.CompiledTemplate compiledTemplate;
+
     public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, String templatePath, File templateFile ) {
         this.groovyClass = groovyClass;
         this.templatePath = templatePath;
@@ -103,6 +108,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
         allOuts.add(out);
     }
 
+    
+
     public void renderTemplate(Map<String, Object> args) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException{
         try {
             renderTemplate(args, null);
@@ -113,7 +120,16 @@ public abstract class GTJavaBase extends GTRenderingResult {
             throw e;
         } catch ( Throwable e) {
             // wrap it in a GTRuntimeException
-            throw new GTRuntimeException(e);
+            e = templateRepo.fixStackTrace(e);
+
+            if ( !(e instanceof GTRuntimeException)) {
+                GTRuntimeException gte = new GTRuntimeException(e.getMessage(), e);
+                // copy the stacktrace
+                gte.setStackTrace( e.getStackTrace());
+                throw gte;
+            } else {
+                throw (GTRuntimeException)e;
+            }
         }
     }
 

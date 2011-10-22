@@ -176,30 +176,30 @@ public class GTPreCompiler {
         String templateClassNameGroovy = templateClassName + "G";
 
         // generate groovy class
-        sc.gprintln("package "+generatedPackageName+";", 1);
-        sc.gprintln("class " + templateClassNameGroovy + " extends "+getGroovyBaseClass().getName()+" {", 1);
+        sc.gprintln("package "+generatedPackageName+";");
+        sc.gprintln("class " + templateClassNameGroovy + " extends "+getGroovyBaseClass().getName()+" {");
 
 
-        sc.gprintln(" public Object run(){", 1);
-        sc.gprintln(sc.pimpStart+"", 1);
-        sc.gprintln(" java_class._renderTemplate();", 1);
-        sc.gprintln(sc.pimpEnd+"", 1);
-        sc.gprintln(" }",1);
+        sc.gprintln(" public Object run(){");
+        sc.gprintln(sc.pimpStart+"");
+        sc.gprintln(" java_class._renderTemplate();");
+        sc.gprintln(sc.pimpEnd+"");
+        sc.gprintln(" }");
 
         // generate java class
-        sc.jprintln("package "+generatedPackageName+";",1);
+        sc.jprintln("package "+generatedPackageName+";");
 
-        sc.jprintln("import java.util.*;",1);
-        sc.jprintln("import java.io.*;",1);
+        sc.jprintln("import java.util.*;");
+        sc.jprintln("import java.io.*;");
 
-        sc.jprintln("public class " + templateClassName + " extends "+getJavaBaseClass().getName()+" {",1);
+        sc.jprintln("public class " + templateClassName + " extends "+getJavaBaseClass().getName()+" {");
 
-        sc.jprintln(" private "+templateClassNameGroovy+" g;",1);
+        sc.jprintln(" private "+templateClassNameGroovy+" g;");
 
         // add constructor which initializes the templateClassNameGroovy-instance
-        sc.jprintln(" public "+templateClassName+"() {",1);
-        sc.jprintln("  super("+templateClassNameGroovy+".class, \""+templatePath+"\", new java.io.File(\""+file.getAbsolutePath()+"\"));",1);
-        sc.jprintln(" }",1);
+        sc.jprintln(" public "+templateClassName+"() {");
+        sc.jprintln("  super("+templateClassNameGroovy+".class, \""+templatePath+"\", new java.io.File(\""+file.getAbsolutePath()+"\"));");
+        sc.jprintln(" }");
 
         rootFragments.add( new GTFragmentCode(1,"  this.g = ("+templateClassNameGroovy+")groovyScript;\n"));
 
@@ -210,11 +210,11 @@ public class GTPreCompiler {
         generateCodeForGTFragments(sc, rootFragments, "_renderTemplate");
 
         // end of java class
-        sc.jprintln("}", sc.currentLineNo);
+        sc.jprintln("}");
 
         //gout.append(sc.pimpEnd+"");
         // end of groovy class
-        sc.gprintln("}", sc.lineOffset);
+        sc.gprintln("}");
 
         return new Output( generatedPackageName+"."+templateClassName, sc._out.toString(), generatedPackageName+"."+templateClassNameGroovy, sc._gout.toString());
     }
@@ -438,10 +438,10 @@ public class GTPreCompiler {
                     String messageArgs = m.group(1).trim();
 
 
-                    return generateMessagePrinter(sc.currentLineNo +1, messageArgs, sc);
+                    return generateMessagePrinter(sc.currentLineNo, messageArgs, sc);
 
                 }else {
-                    throw new GTCompilationExceptionWithSourceInfo("Don't know how to handle type '"+type+"'", sc.file, sc.currentLineNo +1);
+                    throw new GTCompilationExceptionWithSourceInfo("Don't know how to handle type '"+type+"'", sc.file, sc.currentLineNo);
                 }
             } else {
                 // skip to next line
@@ -487,7 +487,7 @@ public class GTPreCompiler {
 
         String javaCode = varName+" = g."+methodName+"();\n" +
                 "if ("+varName+"!=null) out.append( objectToString("+varName+"));\n";
-        return new GTFragmentCode(sc.currentLineNo +1, javaCode);
+        return new GTFragmentCode(sc.currentLineNo, javaCode);
     }
 
     private String generateGroovyExpressionResolver(String expression, SourceContext sc) {
@@ -499,11 +499,11 @@ public class GTPreCompiler {
             // generate the groovy method for retrieving the actual value
 
             methodName = "expression_"+(sc.nextMethodIndex++);
-            sc.gprintln("Object "+methodName+"() {", sc.currentLineNo+1);
+            sc.gprintln("Object "+methodName+"() {", sc.currentLineNo);
             //gout.append(sc.pimpStart+"");
-            sc.gprintln(" return "+expression+";", sc.currentLineNo+1);
+            sc.gprintln(" return "+expression+";", sc.currentLineNo);
             //gout.append(sc.pimpEnd+"");
-            sc.gprintln( "}", sc.currentLineNo+1);
+            sc.gprintln( "}", sc.currentLineNo);
 
             expression2GroovyMethodLookup.put(expression, methodName);
         }
@@ -593,14 +593,14 @@ public class GTPreCompiler {
                 if (f.tagName.equals(tagName)) {
                     return generateTagCode(startLine, tagName, tagArgString, sc, body);
                 } else {
-                    throw new GTCompilationExceptionWithSourceInfo("Found unclosed tag #{"+tagName+"}", sc.file, startLine+1);
+                    throw new GTCompilationExceptionWithSourceInfo("Found unclosed tag #{"+tagName+"}", sc.file, startLine);
                 }
             } else {
                 body.add(nextFragment);
             }
         }
 
-        throw new GTCompilationExceptionWithSourceInfo("Found unclosed tag #{"+tagName+"}", sc.file, startLine+1);
+        throw new GTCompilationExceptionWithSourceInfo("Found unclosed tag #{"+tagName+"}", sc.file, startLine);
     }
 
     // Generates a method in the templates groovy-class which, when called, returns the args-map.
@@ -629,11 +629,11 @@ public class GTPreCompiler {
             tagArgString = checkAndPatchActionStringsInTagArguments(tagArgString);
 
             methodName = "args_"+fixStringForCode(tagName) + "_"+(sc.nextMethodIndex++);
-            sc.gprintln("Map<String, Object> "+methodName+"() {", sc.currentLineNo+1);
+            sc.gprintln("Map<String, Object> "+methodName+"() {", sc.currentLineNo);
             //gout.append(sc.pimpStart+"");
-            sc.gprintln(" return ["+tagArgString+"];", sc.currentLineNo+1);
+            sc.gprintln(" return ["+tagArgString+"];", sc.currentLineNo);
             //gout.append(sc.pimpEnd+"");
-            sc.gprintln( "}", sc.currentLineNo+1);
+            sc.gprintln( "}", sc.currentLineNo);
 
             tagArgs2GroovyMethodLookup.put(tagArgString, methodName);
         }
@@ -667,14 +667,14 @@ public class GTPreCompiler {
         generateCodeForGTFragments( sc, body, contentMethodName);
 
 
-        sc.jprintln("public void "+methodName+"() {", startLine+1);
+        sc.jprintln("public void "+methodName+"() {", startLine);
 
         // add current tag to list of parentTags
-        sc.jprintln(" this.enterTag(\""+tagName+"\");", startLine+1);
-        sc.jprintln(" try {", startLine+1);
+        sc.jprintln(" this.enterTag(\""+tagName+"\");", startLine);
+        sc.jprintln(" try {", startLine);
 
         // add tag args code
-        sc.jprintln(javaCodeToGetRefToArgs, startLine+1);
+        sc.jprintln(javaCodeToGetRefToArgs, startLine);
 
         if ( !gtInternalTagsCompiler.generateCodeForGTFragments(tagName, contentMethodName, sc, startLine)) {
             // Tag was not an internal tag - must resolve it diferently
@@ -715,7 +715,7 @@ public class GTPreCompiler {
                                 generateTagFileInvocation( tagName, tagFilePath, sc, contentMethodName);
                             } else {
                                 // we give up
-                                throw new GTCompilationExceptionWithSourceInfo("Cannot find tag-implementation for '"+tagName+"'", sc.file, sc.currentLineNo +1);
+                                throw new GTCompilationExceptionWithSourceInfo("Cannot find tag-implementation for '"+tagName+"'", sc.file, sc.currentLineNo);
                             }
                         }
                     }
@@ -725,11 +725,11 @@ public class GTPreCompiler {
         }
 
         // remove tag from parentTags-list
-        sc.jprintln("} finally {",startLine+1);
-        sc.jprintln(" this.leaveTag(\""+tagName+"\");", startLine+1);
-        sc.jprintln("}", startLine+1);
+        sc.jprintln("} finally {",startLine);
+        sc.jprintln(" this.leaveTag(\""+tagName+"\");", startLine);
+        sc.jprintln("}", startLine);
 
-        sc.jprintln("}", startLine+1); // method
+        sc.jprintln("}", startLine); // method
 
         return new GTFragmentMethodCall(startLine, methodName);
     }
@@ -757,25 +757,25 @@ public class GTPreCompiler {
         generateGTContentRenderer(sc, contentMethodName, contentRendererName);
 
         // invoke the static fast-tag method
-        sc.jprintln(fullnameToFastTagMethod+"(this, tagArgs, "+contentRendererName+");", sc.currentLineNo+1);
+        sc.jprintln(fullnameToFastTagMethod+"(this, tagArgs, "+contentRendererName+");", sc.currentLineNo);
         
     }
 
     private void generateGTContentRenderer(SourceContext sc, String contentMethodName, String contentRendererName) {
         sc.jprintln(" play.template2.GTContentRenderer " + contentRendererName + " = new play.template2.GTContentRenderer(){\n" +
-                "public play.template2.GTRenderingResult render(){", sc.currentLineNo+1);
+                "public play.template2.GTRenderingResult render(){", sc.currentLineNo);
 
         // need to capture the output from the contentMethod
         String outputVariableName = "ovn_" + (sc.nextMethodIndex++);
         GTInternalTagsCompiler.generateContentOutputCapturing(contentMethodName, outputVariableName, sc, sc.currentLineNo);
-        sc.jprintln( "return new play.template2.GTRenderingResult("+outputVariableName+");", sc.currentLineNo+1);
-        sc.jprintln(" }", sc.currentLineNo+1);
+        sc.jprintln( "return new play.template2.GTRenderingResult("+outputVariableName+");", sc.currentLineNo);
+        sc.jprintln(" }", sc.currentLineNo);
         // must implement runtime property get and set
-        sc.jprintln(" public Object getRuntimeProperty(String name){ try { return binding.getProperty(name); } catch (groovy.lang.MissingPropertyException mpe) { return null; }}", sc.currentLineNo+1);
+        sc.jprintln(" public Object getRuntimeProperty(String name){ try { return binding.getProperty(name); } catch (groovy.lang.MissingPropertyException mpe) { return null; }}", sc.currentLineNo);
 
 
-        sc.jprintln(" public void setRuntimeProperty(String name, Object value){binding.setProperty(name, value);}", sc.currentLineNo+1);
-        sc.jprintln(" };", sc.currentLineNo+1);
+        sc.jprintln(" public void setRuntimeProperty(String name, Object value){binding.setProperty(name, value);}", sc.currentLineNo);
+        sc.jprintln(" };", sc.currentLineNo);
     }
 
     private void generateLegacyFastTagInvocation(String tagName, SourceContext sc, GTLegacyFastTagResolver.LegacyFastTagInfo legacyFastTagInfo, String contentMethodName) {
@@ -785,10 +785,10 @@ public class GTPreCompiler {
 
         // must wrap this lazy content-renderer in a fake Closure
         String fakeClosureName = contentRendererName + "_fc";
-        sc.jprintln(" play.template2.legacy.GTContentRendererFakeClosure "+fakeClosureName+" = new play.template2.legacy.GTContentRendererFakeClosure(this, "+contentRendererName+");", sc.currentLineNo+1);
+        sc.jprintln(" play.template2.legacy.GTContentRendererFakeClosure "+fakeClosureName+" = new play.template2.legacy.GTContentRendererFakeClosure(this, "+contentRendererName+");", sc.currentLineNo);
 
         // invoke the static fast-tag method
-        sc.jprintln(legacyFastTagInfo.bridgeFullMethodName+"(\""+legacyFastTagInfo.legacyFastTagClassname+"\", \"" + legacyFastTagInfo.legacyFastTagMethodName + "\", this, tagArgs, "+fakeClosureName+");", sc.currentLineNo+1);
+        sc.jprintln(legacyFastTagInfo.bridgeFullMethodName+"(\""+legacyFastTagInfo.legacyFastTagClassname+"\", \"" + legacyFastTagInfo.legacyFastTagMethodName + "\", this, tagArgs, "+fakeClosureName+");", sc.currentLineNo);
 
     }
 
@@ -798,29 +798,29 @@ public class GTPreCompiler {
         generateGTContentRenderer(sc, contentMethodName, contentRendererName);
 
         // generate the methodcall to invokeTagFile
-        sc.jprintln(" this.invokeTagFile(\""+tagName+"\",\""+tagFilePath+"\", "+contentRendererName+", tagArgs);", sc.currentLineNo+1);
+        sc.jprintln(" this.invokeTagFile(\""+tagName+"\",\""+tagFilePath+"\", "+contentRendererName+", tagArgs);", sc.currentLineNo);
 
     }
 
 
     private void generateCodeForGTFragments(SourceContext sc, List<GTFragment> body, String methodName) {
 
-        sc.jprintln("public void "+methodName+"() {", sc.currentLineNo+1);
+        sc.jprintln("public void "+methodName+"() {", sc.currentLineNo);
 
         // generate code to store old tlid and set new
-        sc.jprintln(" int org_tlid = this.tlid;",sc.currentLineNo+1);
-        sc.jprintln(" this.tlid = "+(sc.nextMethodIndex++)+";", sc.currentLineNo+1);
+        sc.jprintln(" int org_tlid = this.tlid;",sc.currentLineNo);
+        sc.jprintln(" this.tlid = "+(sc.nextMethodIndex++)+";", sc.currentLineNo);
 
 
-        sc.jprintln(" Object "+varName+";", sc.currentLineNo+1);
+        sc.jprintln(" Object "+varName+";", sc.currentLineNo);
         for ( GTFragment f : body) {
             if (f instanceof GTFragmentMethodCall) {
                 GTFragmentMethodCall m = (GTFragmentMethodCall)f;
-                sc.jprintln("  " + m.methodName + "();", sc.currentLineNo+1);
+                sc.jprintln("  " + m.methodName + "();", sc.currentLineNo);
             } else if (f instanceof GTFragmentCode) {
                 GTFragmentCode c = (GTFragmentCode)f;
                 if ( c.code.length() > 0) {
-                    sc.jprintln("  " + c.code + "", sc.currentLineNo+1);
+                    sc.jprintln("  " + c.code + "", sc.currentLineNo);
                 }
             } else if(f instanceof GTFragmentScript){
                 GTFragmentScript s = (GTFragmentScript)f;
@@ -840,17 +840,17 @@ public class GTPreCompiler {
 
             } else if(f instanceof GTFragmentEndOfMultiLineTag){
                 GTFragmentEndOfMultiLineTag _f = (GTFragmentEndOfMultiLineTag)f;
-                throw new GTCompilationExceptionWithSourceInfo("#{/"+_f.tagName+"} is not opened", sc.file, f.startLine+1);
+                throw new GTCompilationExceptionWithSourceInfo("#{/"+_f.tagName+"} is not opened", sc.file, f.startLine);
 
             } else {
-                throw new GTCompilationExceptionWithSourceInfo("Unknown GTFragment-type " + f, sc.file, f.startLine+1);
+                throw new GTCompilationExceptionWithSourceInfo("Unknown GTFragment-type " + f, sc.file, f.startLine);
             }
         }
 
 
         // restore the tlid
-        sc.jprintln(" this.tlid = org_tlid;", sc.currentLineNo+1);
-        sc.jprintln("}", sc.currentLineNo+1);
+        sc.jprintln(" this.tlid = org_tlid;", sc.currentLineNo);
+        sc.jprintln("}", sc.currentLineNo);
 
     }
 

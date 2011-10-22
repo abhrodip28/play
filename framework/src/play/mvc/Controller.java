@@ -50,7 +50,7 @@ import play.mvc.results.Unauthorized;
 import play.template2.GTJavaBase;
 import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
-import play.template2.exceptions.GTRuntimeException;
+import play.template2.exceptions.GTRuntimeExceptionWithSourceInfo;
 import play.template2.exceptions.GTTemplateNotFound;
 import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import play.templates.Template;
@@ -683,7 +683,7 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
                 throw new TemplateNotFoundException(e.templatePath);
             } catch (GTCompilationExceptionWithSourceInfo e) {
                 //e.printStackTrace();
-                throw new TemplateCompilationException( new TemplateGTWrapper(e.templatePath), e.lineNo, e.specialMessage);
+                throw new TemplateCompilationException( new TemplateGTWrapper(e.srcFile), e.lineNo, e.specialMessage);
             } catch (GTCompilationException e) {
                 //e.printStackTrace();
                 throw new TemplateCompilationException( null, 0, e.getMessage());
@@ -693,8 +693,8 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
                 throw new RenderTemplateGT( template, templateBinding.data);
             } catch ( GTTemplateNotFoundWithSourceInfo e) {
                 throw new TemplateNotFoundException(e.templatePath, new TemplateGTWrapper(e.srcFile), e.lineNo);
-            } catch (GTRuntimeException e){
-                throw new TemplateExecutionException(null, 1, e.getMessage(), e);
+            } catch (GTRuntimeExceptionWithSourceInfo e){
+                throw new TemplateExecutionException( new TemplateGTWrapper(e.srcFile), e.lineNo, e.getMessage(), e);
             }
         }
 

@@ -55,6 +55,7 @@ public class GTTemplateInstanceFactory {
         GTJavaBase templateInstance;
         try {
             templateInstance = (GTJavaBase)templateClass.newInstance();
+            templateInstance.compiledTemplate = compiledTemplate;
             return templateInstance;
         } catch (Exception e) {
             throw new GTException("Error creating template instance", e);

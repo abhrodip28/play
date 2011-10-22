@@ -103,9 +103,14 @@ public class GTCompiler {
         public final String templateClassName;
         public final GTJavaCompileToClass.CompiledClass[] compiledJavaClasses;
 
-        public CompiledTemplate(String templateClassName, GTJavaCompileToClass.CompiledClass[] compiledJavaClasses) {
+        public final LineMapper javaLineMapper;
+        public final LineMapper groovyLineMapper;
+
+        public CompiledTemplate(String templateClassName, GTJavaCompileToClass.CompiledClass[] compiledJavaClasses, LineMapper javaLineMapper, LineMapper groovyLineMapper) {
             this.templateClassName = templateClassName;
             this.compiledJavaClasses = compiledJavaClasses;
+            this.javaLineMapper = javaLineMapper;
+            this.groovyLineMapper = groovyLineMapper;
         }
     }
 
@@ -138,9 +143,9 @@ public class GTCompiler {
         GTPreCompiler.Output precompiled = preCompilerFactory.createCompiler(templateRepo).compile(templatePath, templateFile);
 
         String[] javaLines = precompiled.javaCode.split("\n");
-        LineMapper javaLineMapping = new LineMapper( javaLines);
+        LineMapper javaLineMapper = new LineMapper( javaLines);
         String[] groovyLines = precompiled.groovyCode.split("\n");
-        LineMapper groovyLineMapping = new LineMapper( groovyLines);
+        LineMapper groovyLineMapper = new LineMapper( groovyLines);
 
         // compile the java code
         //System.out.println("java: \n"+precompiled.javaCode);
@@ -159,7 +164,7 @@ public class GTCompiler {
         }
 
         // compile groovy
-        GTJavaCompileToClass.CompiledClass[] groovyClasses = groovyClasses = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( templateFile, groovyLineMapping, precompiled.groovyCode);
+        GTJavaCompileToClass.CompiledClass[] groovyClasses = groovyClasses = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( templatePath, templateFile, groovyLineMapper, precompiled.groovyCode);
 
         // Create Classloader witch includes our groovy class
         GTTemplateInstanceFactory.CL cl = new GTTemplateInstanceFactory.CL(parentClassloader, groovyClasses);
@@ -170,7 +175,7 @@ public class GTCompiler {
         allCompiledClasses.addAll( Arrays.asList(compiledJavaClasses) );
         allCompiledClasses.addAll( Arrays.asList(groovyClasses));
 
-        return new CompiledTemplate(precompiled.javaClassName, allCompiledClasses.toArray( new GTJavaCompileToClass.CompiledClass[]{}));
+        return new CompiledTemplate(precompiled.javaClassName, allCompiledClasses.toArray( new GTJavaCompileToClass.CompiledClass[]{}), javaLineMapper, groovyLineMapper);
     }
 
 }

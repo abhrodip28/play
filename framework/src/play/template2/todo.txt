@@ -1,3 +1,4 @@
+* propper set / get with thead local - layout data
 * need better tagcontext - something like the old one but faster
 * improved pimp-support and option
 * Namespace for new fasttags

@@ -28,7 +28,7 @@ public class GTGroovyCompileToClass {
         this.parentClassLoader = parentClassLoader;
     }
 
-    public GTJavaCompileToClass.CompiledClass[] compileGroovySource( File templateFile, GTCompiler.LineMapper lineMapper, String groovySource) {
+    public GTJavaCompileToClass.CompiledClass[] compileGroovySource( String templatePath, File templateFile, GTCompiler.LineMapper lineMapper, String groovySource) {
 
         final List<GroovyClass> groovyClassesForThisTemplate = new ArrayList<GroovyClass>();
 

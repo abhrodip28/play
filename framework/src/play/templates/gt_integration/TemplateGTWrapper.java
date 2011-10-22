@@ -2,6 +2,7 @@ package play.templates.gt_integration;
 
 import play.libs.IO;
 import play.templates.Template;
+import play.vfs.VirtualFile;
 
 import java.io.File;
 import java.util.Map;
@@ -11,9 +12,9 @@ public class TemplateGTWrapper extends Template {
 
 
 
-    public TemplateGTWrapper(File templatePath) {
-        this.source = IO.readContentAsString( templatePath);
-        this.name = templatePath.toString();
+    public TemplateGTWrapper(File srcFile) {
+        this.source = IO.readContentAsString( srcFile);
+        this.name = VirtualFile.open(srcFile).relativePath();
     }
 
 
