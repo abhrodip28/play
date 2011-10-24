@@ -131,8 +131,6 @@ public class GTInternalTagsCompiler {
         // done..
     }
 
-
-
     protected static void generateContentOutputCapturing( String contentMethodName, String outputVariableName, GTPreCompiler.SourceContext sc, int line) {
         sc.jprintln("//generateContentOutputCapturing", line);
         // remember the original out

@@ -807,11 +807,6 @@ public class GTPreCompiler {
 
         sc.jprintln("public void "+methodName+"() {", sc.currentLineNo);
 
-        // generate code to store old tlid and set new
-        sc.jprintln(" int org_tlid = this.tlid;",sc.currentLineNo);
-        sc.jprintln(" this.tlid = "+(sc.nextMethodIndex++)+";", sc.currentLineNo);
-
-
         sc.jprintln(" Object "+varName+";", sc.currentLineNo);
         for ( GTFragment f : body) {
             if (f instanceof GTFragmentMethodCall) {
@@ -840,18 +835,15 @@ public class GTPreCompiler {
 
             } else if(f instanceof GTFragmentEndOfMultiLineTag){
                 GTFragmentEndOfMultiLineTag _f = (GTFragmentEndOfMultiLineTag)f;
-                throw new GTCompilationExceptionWithSourceInfo("#{/"+_f.tagName+"} is not opened", sc.file, f.startLine);
+                throw new GTCompilationExceptionWithSourceInfo("#{/"+_f.tagName+"} is not opened.", sc.file, f.startLine);
 
             } else {
                 throw new GTCompilationExceptionWithSourceInfo("Unknown GTFragment-type " + f, sc.file, f.startLine);
             }
         }
 
-
-        // restore the tlid
-        sc.jprintln(" this.tlid = org_tlid;", sc.currentLineNo);
+        // end of method
         sc.jprintln("}", sc.currentLineNo);
-
     }
 
     public Class<? extends GTGroovyBase> getGroovyBaseClass() {

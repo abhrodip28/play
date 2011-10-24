@@ -45,14 +45,8 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
         Matcher m = staticFileP.matcher(action.trim());
         if (m.find()) {
             // This is an action/link to a static file.
-            // resolve it now and include the resolved link in the template code.
             action = m.group(1); // without ''
-            // resolve it
-            String link = GTJavaBase1xImpl.__reverseWithCheck(action, absolute);
-            // prepare link for java-code-string
-            link = link.replaceAll("\\\\", "\\\\");
-            //code = " out.append(__reverseWithCheck("+action+", "+absolute+"));\n";
-            code = " out.append(\""+link+"\");\n";
+            code = " out.append(__reverseWithCheck(\""+action+"\", "+absolute+"));\n";
         } else {
             if (!action.endsWith(")")) {
                 action = action + "()";
@@ -65,13 +59,13 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
             // generate groovy code
             String groovyMethodName = "action_resolver_" + (sc.nextMethodIndex++);
 
-            sc.gprintln(" String " + groovyMethodName + "() {", sc.currentLineNo + 1);
+            sc.gprintln(" String " + groovyMethodName + "() {", sc.currentLineNo);
             if (absolute) {
-                sc.gprintln(" return actionBridge._abs()." + action + ";", sc.currentLineNo+1);
+                sc.gprintln(" return actionBridge._abs()." + action + ";");
             } else {
-                sc.gprintln(" return actionBridge." + action + ";", sc.currentLineNo + 1);
+                sc.gprintln(" return actionBridge." + action + ";");
             }
-            sc.gprintln(" }", sc.currentLineNo + 1);
+            sc.gprintln(" }");
 
             // generate java code that prints it
             code = " out.append(g."+groovyMethodName+"());";

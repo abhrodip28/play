@@ -1,63 +1,56 @@
 package play.templates;
 
-import java.util.HashMap;
+import play.template2.GTTagContext;
+
 import java.util.Map;
-import java.util.Stack;
 
 /**
  * Tag Context (retrieve who call you)
+ * Exists to be compatible with GTTagContext
  */
 public class TagContext {
     
-    static ThreadLocal<Stack<TagContext>> currentStack = new ThreadLocal<Stack<TagContext>>();
-    
-    public String tagName;
-    public Map<String, Object> data = new HashMap<String, Object>();
+    public final String tagName;
+    public final Map<String, Object> data;
 
-    public TagContext(String tagName) {
+    protected TagContext(String tagName, Map<String, Object> data) {
         this.tagName = tagName;
+        this.data = data;
     }
-    
+
     public static void init() {
-        currentStack.set(new Stack<TagContext>());
-        enterTag("ROOT");
+        GTTagContext.init();
     }
-    
+
     public static void enterTag(String name) {
-        currentStack.get().add(new TagContext(name));
+        GTTagContext.enterTag(name);
     }
     
     public static void exitTag() {
-        currentStack.get().pop();
+        GTTagContext.exitTag();
+    }
+
+    private static TagContext createWrapper(GTTagContext tc) {
+        if ( tc == null) {
+            return null;
+        }
+        return new TagContext(tc.tagName, tc.data);
     }
     
     public static TagContext current() {
-        return currentStack.get().peek();
+        return createWrapper(GTTagContext.current());
     }
     
     public static TagContext parent() {
-        if(currentStack.get().size() < 2) {
-            return null;
-        }
-        return currentStack.get().get(currentStack.get().size()-2);
+        return createWrapper(GTTagContext.parent());
     }
     
     public static boolean hasParentTag(String name) {
-        for(int i=currentStack.get().size()-1; i>=0; i--) {
-            if(name.equals(currentStack.get().get(i).tagName)) {
-                return true;
-            }
-        }
-        return false;
+        return GTTagContext.hasParentTag(name);
     }
     
     public static TagContext parent(String name) {
-        for(int i=currentStack.get().size()-1; i>=0; i--) {
-            if(name.equals(currentStack.get().get(i).tagName)) {
-                return currentStack.get().get(i);
-            }
-        }
-        return null;
+        return createWrapper(GTTagContext.parent(name));
     }
 
     @Override

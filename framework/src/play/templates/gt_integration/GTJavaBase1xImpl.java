@@ -6,11 +6,13 @@ import play.i18n.Messages;
 import play.mvc.Router;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
+import play.template2.exceptions.GTRuntimeException;
+import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import play.templates.BaseTemplate;
-import play.templates.TagContext;
 import play.utils.HTML;
 
 import java.io.File;
+import java.util.Map;
 
 public abstract class GTJavaBase1xImpl extends GTJavaBase {
 
@@ -62,21 +64,10 @@ public abstract class GTJavaBase1xImpl extends GTJavaBase {
     }
 
     @Override
-    protected void renderingStarted() {
-        super.renderingStarted();
-        TagContext.init();
-    }
-
-    @Override
-    public void enterTag(String tagName) {
-        super.enterTag(tagName);
-        TagContext.enterTag(tagName);
-    }
-
-    @Override
-    public void leaveTag(String tagName) {
-        super.leaveTag(tagName);
-        TagContext.exitTag();
+    protected void internalRenderTemplate(Map<String, Object> args, boolean startingNewRendering) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException {
+        // make sure the old layoutData referees to the same in map-instance as what the new impl uses
+        BaseTemplate.layoutData.set( GTJavaBase.layoutData.get() );
+        super.internalRenderTemplate(args, startingNewRendering);
     }
 
 }

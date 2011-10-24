@@ -4,12 +4,15 @@ import groovy.lang.Closure;
 import play.Play;
 import play.classloading.ApplicationClasses;
 import play.classloading.ApplicationClassloaderState;
+import play.exceptions.TemplateExecutionException;
 import play.template2.GTJavaBase;
+import play.template2.exceptions.GTTemplateRuntimeException;
 import play.template2.legacy.GTLegacyFastTagResolver;
 import play.templates.FastTags;
 import play.templates.GroovyTemplate;
 
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -100,12 +103,26 @@ public class GTLegacyFastTagResolver1X implements GTLegacyFastTagResolver {
             }
 
             PrintWriter out = new PrintWriter( template.out );
-            GroovyTemplate.ExecutableTemplate executableTemplate = null;
+            GroovyTemplate.ExecutableTemplate executableTemplate = new GroovyTemplate.ExecutableTemplate() {
+
+                @Override
+                public Object run() {
+                    throw new RuntimeException("Not implemented in this wrapper");
+                }
+            };
+            
             int fromLine = 0;
 
             m.invoke(null, args, body, out, executableTemplate, fromLine);
+        } catch (InvocationTargetException e) {
+            if ( e.getCause() instanceof TemplateExecutionException) {
+            // Must be transformed into GTTemplateRuntimeException
+            throw new GTTemplateRuntimeException(e.getCause().getMessage());
+            } else {
+                throw new RuntimeException(e);
+            }
         } catch (Exception e) {
-            throw new RuntimeException("Error when executing lecacy fastTag " + legacyFastTagClassName+"."+legacyFastTagMethodName, e);
+            throw new RuntimeException("Error when executing legacy fastTag " + legacyFastTagClassName+"."+legacyFastTagMethodName, e);
         }
     }
 

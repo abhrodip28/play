@@ -14,21 +14,14 @@ import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 
 public abstract class GTJavaBase extends GTRenderingResult {
 
-    // Used by the set-/get-tags
-    protected Map<String, String> tag_set_get_store = new HashMap<String, String>();
-
-    // Used by if/elseif/ifnot/else
-    // if tlid is present in set, then the else /elseif should run
-    protected Set<Integer> runNextElse = new HashSet<Integer>();
+    public final static String executeNextElseKeyName = "_executeNextElse";
 
     public StringWriter out;
 
@@ -48,26 +41,14 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     public GTTemplateRepo templateRepo;
 
-    // TagLevelID - when the runtime enters a new "tag-level" (Think: indent),it sets a unique value to
-    // this variable. When the runtime leaves this level, it restores the previous value.
-    // TagLevelID can therefor be used as a key when you need to store info between tags in same level - eg: if/else/elseif etc
-    protected int tlid = -1;
-
-    // each time we enter a new tag, we inc the counter for that tag-name in this map.
-    // when returning, we dec it.
-    // Can be used to check if specific parent tag is present
-    protected Map<String, Integer> visitedTagNameCounter = new HashMap<String, Integer>();
-
     public final String templatePath;
     public final File templateFile;
 
 
-    // Can be used by fastTags to communicate between multiple tags..
-    public final Map<Object, Object> customData = new HashMap<Object, Object>();
-
-
     // this gets a value (injected) after the template is new'ed - contains line-mapping info
     public GTCompiler.CompiledTemplate compiledTemplate;
+
+    public static ThreadLocal<Map<Object, Object>> layoutData = new ThreadLocal<Map<Object, Object>>();
 
     public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, String templatePath, File templateFile ) {
         this.groovyClass = groovyClass;
@@ -106,11 +87,51 @@ public abstract class GTJavaBase extends GTRenderingResult {
         allOuts.add(out);
     }
 
+    public void renderTemplate(Map<String, Object> args) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException{
+        // this is the main rendering start of the actual template
+
+        // init layout data which should be visible for all templates involved
+        layoutData.set( new HashMap<Object, Object>() );
+
+        internalRenderTemplate(args, true);
+    }
     
 
-    public void renderTemplate(Map<String, Object> args) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException{
+    protected void internalRenderTemplate(Map<String, Object> args, boolean startingNewRendering) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException{
+
+        if ( startingNewRendering) {
+            // start with fresh tag-stack
+            GTTagContext.init();
+        }
+
         try {
-            renderTemplate(args, null);
+
+            // must store a copy of args, so we can pass the same (unchnaged) args to an extending template.
+            this.orgArgs = new HashMap<String, Object>(args);
+            this.binding = new Binding(args);
+            // must init our groovy script
+
+            groovyScript = InvokerHelper.createScript(groovyClass, binding);
+            // create a property in groovy so that groovy can find us (this)
+            groovyScript.setProperty(GTGroovyBase.__templateRef_propertyName, this);
+
+            groovyScript.setProperty("java_class", this);
+            groovyScript.run();
+            //_renderTemplate();
+
+            // check if "we" have extended an other template..
+            if (extendsTemplatePath != null) {
+                // yes, we've extended another template
+                // Get the template we are extending
+                extendedTemplate = templateRepo.getTemplateInstance( extendsTemplatePath);
+
+                // tell it that "we" extended it..
+                extendedTemplate.extendingTemplate = this;
+
+                // ok, render it with original args..
+                extendedTemplate.internalRenderTemplate( orgArgs, true );
+            }
+
         } catch( GTTemplateNotFoundWithSourceInfo e) {
             throw e;
         } catch ( GTRuntimeException e) {
@@ -123,79 +144,16 @@ public abstract class GTJavaBase extends GTRenderingResult {
         }
     }
 
-    protected void renderingStarted() {
-
-    }
-
-    // existingVisitedTagNameCounter must be the same used by the calling template if using template as tag
-    protected void renderTemplate(Map<String, Object> args, Map<String, Integer> existingVisitedTagNameCounter) {
-
-        if ( existingVisitedTagNameCounter == null) {
-            this.visitedTagNameCounter = new HashMap<String, Integer>();
-        } else {
-            this.visitedTagNameCounter = existingVisitedTagNameCounter;
-        }
-
-        // must store a copy of args, so we can pass the same (unchnaged) args to an extending template.
-        this.orgArgs = new HashMap<String, Object>(args);
-        this.binding = new Binding(args);
-        // must init our groovy script
-
-        groovyScript = InvokerHelper.createScript(groovyClass, binding);
-        // create a property in groovy so that groovy can find us (this)
-        groovyScript.setProperty(GTGroovyBase.__templateRef_propertyName, this);
-
-        if ( existingVisitedTagNameCounter == null) {
-            renderingStarted();
-        }
-
-        groovyScript.setProperty("java_class", this);
-        groovyScript.run();
-        //_renderTemplate();
-
-        // check if "we" have extended an other template..
-        if (extendsTemplatePath != null) {
-            // yes, we've extended another template
-            // Get the template we are extending
-            extendedTemplate = templateRepo.getTemplateInstance( extendsTemplatePath);
-
-            // tell it that "we" extended it..
-            extendedTemplate.extendingTemplate = this;
-
-            // ok, render it with original args..
-            extendedTemplate.renderTemplate( orgArgs );
-        }
-    }
-
     protected abstract void _renderTemplate();
 
     protected void enterTag( String tagName) {
-        Integer count = visitedTagNameCounter.get(tagName);
-        if (count == null) {
-            count = 1;
-        } else {
-            count++;
-        }
-        visitedTagNameCounter.put(tagName, count);
+        GTTagContext.enterTag(tagName);
     }
 
     protected void leaveTag( String tagName) {
-        Integer count = visitedTagNameCounter.get(tagName);
-        if (count != null) {
-            count--;
-        }
-        visitedTagNameCounter.put(tagName, count);
+        GTTagContext.exitTag();
     }
-
-    public boolean hasParentTag(String tagName) {
-        Integer count = visitedTagNameCounter.get(tagName);
-        if (count == null) {
-            return false;
-        }
-
-        return count > 0;
-    }
-
+    
     /**
      * return the class/interface that, when an object is instanceof it, we should use
      * convertRawDataToString when converting it to String.
@@ -217,7 +175,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         Class rawDataClass = getRawDataClass();
         if (rawDataClass != null && rawDataClass.isAssignableFrom(o.getClass())) {
             return convertRawDataToString(o);
-        } else if (!templatePath.endsWith(".html") || hasParentTag("verbatim")) {
+        } else if (!templatePath.endsWith(".html") || GTTagContext.hasParentTag("verbatim")) {
             return o.toString();
         } else {
             return escapeHTML( o.toString());
@@ -264,7 +222,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         // Must also add all tag-args (the map) with original names as a new value named '_attrs'
         completeTagArgs.put("_attrs", tagArgs);
 
-        tagTemplate.renderTemplate(completeTagArgs, this.visitedTagNameCounter);
+        tagTemplate.internalRenderTemplate(completeTagArgs, false);
         //grab the output
         insertOutput( tagTemplate );
     }
@@ -279,15 +237,20 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public abstract String messagesGet(Object key, Object... args);
 
     public void clearElseFlag() {
-        runNextElse.remove(tlid);
+        GTTagContext.parent().data.remove(executeNextElseKeyName);
     }
 
     public void setElseFlag() {
-        runNextElse.add(tlid);
+        GTTagContext.parent().data.put(executeNextElseKeyName, true);
     }
 
     public boolean elseFlagIsSet() {
-        return runNextElse.contains(tlid);
+        Boolean v = (Boolean)GTTagContext.parent().data.get(executeNextElseKeyName);
+        if ( v != null) {
+            return v;
+        } else {
+            return false;
+        }
     }
     
     protected String handleMessageTag(Object _args) {

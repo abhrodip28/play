@@ -46,8 +46,6 @@ public class GTInternalFastTags implements GTFastTagResolver {
         template.out.append("[from testFastTag after]");
     }
 
-    private static final String set_get_key = "__internal_set_get_map";
-
     public static void tag_get(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
 
         String key = args.get("arg").toString();
@@ -60,13 +58,8 @@ public class GTInternalFastTags implements GTFastTagResolver {
             return ;
         }
 
-        Map<String, String> set_get_map = (Map<String, String>)template.customData.get(set_get_key);
 
-        if ( set_get_map == null) {
-            return ;
-        }
-
-        String value = set_get_map.get(key);
+        String value = (String)GTJavaBase.layoutData.get().get(key);
 
         if (value != null) {
             template.out.append(value);
@@ -104,13 +97,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
         }
 
         if ( key != null ) {
-            Map<String, String> set_get_map = (Map<String, String>)template.customData.get(set_get_key);
-            if ( set_get_map == null ) {
-                // first time - create it
-                set_get_map = new HashMap<String, String>(16);
-                template.customData.put(set_get_key, set_get_map);
-            }
-            set_get_map.put(key, value);
+            GTJavaBase.layoutData.get().put(key, value);
         }
     }
 
@@ -213,6 +200,8 @@ public class GTInternalFastTags implements GTFastTagResolver {
         }
 
     }
+
+    
 
 
 }

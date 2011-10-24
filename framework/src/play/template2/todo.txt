@@ -1,10 +1,9 @@
-* propper set / get with thead local - layout data
-* need better tagcontext - something like the old one but faster
 * improved pimp-support and option
 * Namespace for new fasttags
 * Custom new fasttags
 * error messages
+    * Remove too much text: Execution error occured in template /app/views/Application/jsRouteError.html. Exception raised was GTRuntimeExceptionWithSourceInfo : Error when executing legacy fastTag play.templates.FastTags._jsRoute.
 * always use GT
 * integrate with old so that all "is the same"
-* src and lineno mapping
 * port all fasttags
+    * Remember to remove old impls
