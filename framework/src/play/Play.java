@@ -11,8 +11,8 @@ import play.mvc.Router;
 import play.plugins.PluginCollection;
 import play.template2.GTTemplateRepo;
 import play.templates.TemplateLoader;
-import play.templates.gt_integration.GTIntegration1X;
 import play.templates.gt_integration.GT_init1x;
+import play.templates.gt_integration.PreCompilerFactory;
 import play.utils.OrderSafeProperties;
 import play.vfs.VirtualFile;
 
@@ -295,7 +295,7 @@ public class Play {
         // init GT-templates
         GT_init1x.initGTTemplateEngine(templatesPath);
 
-        templateRepo = new GTTemplateRepo( classloader,  Play.mode == Mode.DEV, new GTIntegration1X(), new GTIntegration1X.PreCompilerFactory());
+        templateRepo = new GTTemplateRepo( classloader,  Play.mode == Mode.DEV, new PreCompilerFactory());
 
 
         // Fix ctxPath

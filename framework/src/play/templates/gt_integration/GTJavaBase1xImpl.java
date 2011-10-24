@@ -6,6 +6,9 @@ import play.i18n.Messages;
 import play.mvc.Router;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
+import play.templates.BaseTemplate;
+import play.templates.TagContext;
+import play.utils.HTML;
 
 import java.io.File;
 
@@ -42,4 +45,38 @@ public abstract class GTJavaBase1xImpl extends GTJavaBase {
     public String messagesGet(Object key, Object... args) {
         return Messages.get(key, args);
     }
+
+    @Override
+    public Class getRawDataClass() {
+        return BaseTemplate.RawData.class;
+    }
+
+    @Override
+    public String convertRawDataToString(Object rawData) {
+        return ((BaseTemplate.RawData)rawData).data;
+    }
+
+    @Override
+    public String escapeHTML(String s) {
+        return HTML.htmlEscape(s);
+    }
+
+    @Override
+    protected void renderingStarted() {
+        super.renderingStarted();
+        TagContext.init();
+    }
+
+    @Override
+    public void enterTag(String tagName) {
+        super.enterTag(tagName);
+        TagContext.enterTag(tagName);
+    }
+
+    @Override
+    public void leaveTag(String tagName) {
+        super.leaveTag(tagName);
+        TagContext.exitTag();
+    }
+
 }

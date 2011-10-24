@@ -6,8 +6,10 @@ import play.template2.compile.GTPreCompilerFactory;
 import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.exceptions.GTException;
+import play.template2.exceptions.GTRuntimeException;
 import play.template2.exceptions.GTRuntimeExceptionWithSourceInfo;
 import play.template2.exceptions.GTTemplateNotFound;
+import play.template2.exceptions.GTTemplateRuntimeException;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -22,8 +24,6 @@ public class GTTemplateRepo {
     public final GTPreCompilerFactory preCompilerFactory;
 
     public static GTTemplateFileResolver templateFileResolver = new GTDefaultTemplateFileResolver();
-
-    public final GTIntegration integration;
 
     private Map<String, TemplateInfo> loadedTemplates = new HashMap<String, TemplateInfo>();
     private Map<String, TemplateInfo> classname2TemplateInfo = new HashMap<String, TemplateInfo>();
@@ -65,16 +65,12 @@ public class GTTemplateRepo {
     }
 
 
-    public GTTemplateRepo(ClassLoader parentClassLoader, boolean checkForChanges, GTIntegration integration, GTPreCompilerFactory preCompilerFactory) {
+    public GTTemplateRepo(ClassLoader parentClassLoader, boolean checkForChanges, GTPreCompilerFactory preCompilerFactory) {
         this.parentClassLoader = parentClassLoader;
         if (parentClassLoader== null) {
             throw new GTException("parentClassLoader cannot be null");
         }
         this.checkForChanges = checkForChanges;
-        this.integration = integration;
-        if (integration== null) {
-            throw new GTException("integration cannot be null");
-        }
 
         this.preCompilerFactory = preCompilerFactory;
         if ( preCompilerFactory ==null ) {
@@ -167,12 +163,35 @@ public class GTTemplateRepo {
     }
 
     // converts stacktrace-elements referring to generated template code into pointin to the correct template-file and line
-    public Throwable fixStackTrace(Throwable e) {
+    public GTRuntimeException fixException(Throwable e) {
         TemplateInfo prevTi = null;
         TemplateInfo errorTI = null;
         int errorLine = 0;
+
+        StackTraceElement[] seList = e.getStackTrace();
+
+        if ( e instanceof GTTemplateRuntimeException) {
+            // we must skip all stack-trace-elements in front until we find one with a generated classname
+            int i=0;
+            while ( i < seList.length) {
+                String clazz = seList[i].getClassName();
+                if ( clazz.startsWith(GTPreCompiler.generatedPackageName)) {
+                    // This is a generated class
+                    // This is our new start index
+                    StackTraceElement[] l = new StackTraceElement[seList.length-i];
+                    for ( int n = i; n< seList.length; n++) {
+                        l[n-i] = seList[n];
+                    }
+                    seList = l;
+
+                    break;
+                }
+                i++;
+            }
+        }
+
         List<StackTraceElement> newSElist = new ArrayList<StackTraceElement>();
-        for ( StackTraceElement se : e.getStackTrace()) {
+        for ( StackTraceElement se : seList) {
             StackTraceElement orgSe = se;
             String clazz = se.getClassName();
             int lineNo=0;
@@ -228,6 +247,7 @@ public class GTTemplateRepo {
 
             if ( se != null) {
                 if ( newSElist.isEmpty() && se != orgSe) {
+                    // The topmost error is in a template
                     errorTI = ti;
                     errorLine = lineNo;
                 }
@@ -236,15 +256,19 @@ public class GTTemplateRepo {
 
         }
 
-        e.setStackTrace( newSElist.toArray(new StackTraceElement[]{}));
+        StackTraceElement[] newStackTranceAray = newSElist.toArray(new StackTraceElement[]{});
 
         if ( errorTI != null) {
-            // wrap it
+            // The top-most error is a template error and we have the source.
+            // generate GTRuntimeExceptionWithSourceInfo
             GTRuntimeExceptionWithSourceInfo newE = new GTRuntimeExceptionWithSourceInfo(e.getMessage(), e, errorTI.file, errorLine);
-            newE.setStackTrace( e.getStackTrace());
+            newE.setStackTrace( newStackTranceAray) ;
             return newE;
         } else {
-            return e;
+            // The topmost error is not inside a template - wrap it in GTRuntimeException
+            GTRuntimeException newE = new GTRuntimeException(e.getMessage(), e);
+            newE.setStackTrace(newStackTranceAray);
+            return newE;
         }
     }
 

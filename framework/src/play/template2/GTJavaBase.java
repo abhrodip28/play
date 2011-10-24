@@ -5,9 +5,9 @@ import groovy.lang.Script;
 import org.apache.commons.collections.iterators.ArrayIterator;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import play.template2.compile.GTCompiler;
-import play.template2.exceptions.GTException;
 import play.template2.exceptions.GTRuntimeException;
 import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
+import play.template2.exceptions.GTTemplateRuntimeException;
 
 import java.io.File;
 import java.io.OutputStream;
@@ -47,8 +47,6 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public GTContentRenderer contentRenderer;
 
     public GTTemplateRepo templateRepo;
-
-    protected Class rawDataClass = null;
 
     // TagLevelID - when the runtime enters a new "tag-level" (Think: indent),it sets a unique value to
     // this variable. When the runtime leaves this level, it restores the previous value.
@@ -120,17 +118,13 @@ public abstract class GTJavaBase extends GTRenderingResult {
             throw e;
         } catch ( Throwable e) {
             // wrap it in a GTRuntimeException
-            e = templateRepo.fixStackTrace(e);
+            throw templateRepo.fixException(e);
 
-            if ( !(e instanceof GTRuntimeException)) {
-                GTRuntimeException gte = new GTRuntimeException(e.getMessage(), e);
-                // copy the stacktrace
-                gte.setStackTrace( e.getStackTrace());
-                throw gte;
-            } else {
-                throw (GTRuntimeException)e;
-            }
         }
+    }
+
+    protected void renderingStarted() {
+
     }
 
     // existingVisitedTagNameCounter must be the same used by the calling template if using template as tag
@@ -152,7 +146,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         groovyScript.setProperty(GTGroovyBase.__templateRef_propertyName, this);
 
         if ( existingVisitedTagNameCounter == null) {
-            templateRepo.integration.renderingStarted();
+            renderingStarted();
         }
 
         groovyScript.setProperty("java_class", this);
@@ -183,7 +177,6 @@ public abstract class GTJavaBase extends GTRenderingResult {
             count++;
         }
         visitedTagNameCounter.put(tagName, count);
-        templateRepo.integration.enterTag(tagName);
     }
 
     protected void leaveTag( String tagName) {
@@ -192,7 +185,6 @@ public abstract class GTJavaBase extends GTRenderingResult {
             count--;
         }
         visitedTagNameCounter.put(tagName, count);
-        templateRepo.integration.leaveTag();
     }
 
     public boolean hasParentTag(String tagName) {
@@ -204,19 +196,31 @@ public abstract class GTJavaBase extends GTRenderingResult {
         return count > 0;
     }
 
+    /**
+     * return the class/interface that, when an object is instanceof it, we should use
+     * convertRawDataToString when converting it to String.
+     * Framework should override.
+     */
+    public abstract Class getRawDataClass();
+
+    /**
+     *  See getRawDataClass for info
+     */
+    public abstract String convertRawDataToString(Object rawData);
+
+    public abstract String escapeHTML( String s);
+
+
+
     // We know that o is never null
     public String objectToString( Object o) {
-        //if (1==1)
-        //    return o.toString();
-        if (rawDataClass==null) {
-            rawDataClass = templateRepo.integration.getRawDataClass();
-        }
-        if (rawDataClass.isAssignableFrom( o.getClass())) {
-            return templateRepo.integration.convertRawDataToString(o);
+        Class rawDataClass = getRawDataClass();
+        if (rawDataClass != null && rawDataClass.isAssignableFrom(o.getClass())) {
+            return convertRawDataToString(o);
         } else if (!templatePath.endsWith(".html") || hasParentTag("verbatim")) {
             return o.toString();
         } else {
-            return templateRepo.integration.escapeHTML( o.toString());
+            return escapeHTML( o.toString());
         }
     }
 
@@ -267,18 +271,12 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
 
     // must be overridden by play framework
-    public boolean validationHasErrors() {
-        throw new GTException("Not implemented by default. Must be overridden by framework impl");
-    }
+    public abstract boolean validationHasErrors();
 
     // must be overridden by play framework
-    public boolean validationHasError(String key) {
-        throw new GTException("Not implemented by default. Must be overridden by framework impl");
-    }
+    public abstract boolean validationHasError(String key);
 
-    public String messagesGet(Object key, Object... args) {
-        throw new GTException("Not implemented by default. Must be overridden by framework impl");
-    }
+    public abstract String messagesGet(Object key, Object... args);
 
     public void clearElseFlag() {
         runNextElse.remove(tlid);
@@ -297,11 +295,11 @@ public abstract class GTJavaBase extends GTRenderingResult {
         List argsList = (List)_args;
 
         if ( argsList.size()==0) {
-            throw new GTRuntimeException("It looks like you don't have anything in your Message tag");
+            throw new GTTemplateRuntimeException("It looks like you don't have anything in your Message tag");
         }
         Object key = argsList.get(0);
         if (key==null) {
-            throw new GTRuntimeException("You are trying to resolve a message with an expression " +
+            throw new GTTemplateRuntimeException("You are trying to resolve a message with an expression " +
                     "that is resolved to null - " +
                     "have you forgotten quotes around the message-key?");
         }
@@ -341,6 +339,6 @@ public abstract class GTJavaBase extends GTRenderingResult {
             }.iterator();
         }
 
-        throw new GTRuntimeException("Cannot convert object-reference to Iterator");
+        throw new GTTemplateRuntimeException("Cannot convert object-reference to Iterator");
     }
 }

@@ -605,7 +605,7 @@ public class GTPreCompiler {
 
     // Generates a method in the templates groovy-class which, when called, returns the args-map.
     // returns the java code needed to execute and return the data
-    private String generateGroovyCodeForTagArgs(SourceContext sc, String tagName, String tagArgString) {
+    private String generateGroovyCodeForTagArgs(SourceContext sc, String tagName, String tagArgString, int srcLine) {
 
         if ( tagArgString == null || tagArgString.trim().length() == 0) {
             // just generate code that creates empty map
@@ -629,11 +629,11 @@ public class GTPreCompiler {
             tagArgString = checkAndPatchActionStringsInTagArguments(tagArgString);
 
             methodName = "args_"+fixStringForCode(tagName) + "_"+(sc.nextMethodIndex++);
-            sc.gprintln("Map<String, Object> "+methodName+"() {", sc.currentLineNo);
+            sc.gprintln("Map<String, Object> "+methodName+"() {", srcLine);
             //gout.append(sc.pimpStart+"");
-            sc.gprintln(" return ["+tagArgString+"];", sc.currentLineNo);
+            sc.gprintln(" return ["+tagArgString+"];", srcLine);
             //gout.append(sc.pimpEnd+"");
-            sc.gprintln( "}", sc.currentLineNo);
+            sc.gprintln( "}", srcLine);
 
             tagArgs2GroovyMethodLookup.put(tagArgString, methodName);
         }
@@ -657,7 +657,7 @@ public class GTPreCompiler {
     private GTFragmentMethodCall generateTagCode(int startLine, String tagName, String tagArgString, SourceContext sc, List<GTFragment> body) {
 
         // generate groovy code for tag-args
-        String javaCodeToGetRefToArgs = generateGroovyCodeForTagArgs( sc, tagName, tagArgString);
+        String javaCodeToGetRefToArgs = generateGroovyCodeForTagArgs( sc, tagName, tagArgString, startLine);
 
 
         String methodName = generateMethodName(tagName, sc);

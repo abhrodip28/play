@@ -4,13 +4,6 @@ import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 
 import java.lang.reflect.Method;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mortenkjetland
- * Date: 10/11/11
- * Time: 12:06 PM
- * To change this template use File | Settings | File Templates.
- */
 public class GTInternalTagsCompiler {
 
 
@@ -29,7 +22,7 @@ public class GTInternalTagsCompiler {
         try {
             tagMethod.invoke(this, tagName, contentMethodName, sc, startLine);
         } catch (Exception e) {
-            throw new GTCompilationExceptionWithSourceInfo("Error generating code for tag '"+tagName+"'", sc.file, startLine+1, e);
+            throw new GTCompilationExceptionWithSourceInfo("Error generating code for tag '"+tagName+"'", sc.file, startLine, e);
         }
 
         return true;
@@ -39,7 +32,7 @@ public class GTInternalTagsCompiler {
 
 
         // one can else if list is empty - must clear the else flag
-        sc.jprintln(" clearElseFlag();", startLine + 1);
+        sc.jprintln(" clearElseFlag();", startLine);
 
 
         sc.jprintln(" String as = (String)tagArgs.get(\"as\");");
@@ -75,7 +68,7 @@ public class GTInternalTagsCompiler {
 
     public void tag_if(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc, int startLine) {
         // extract the argument named "arg"
-        sc.jprintln(" Object e = tagArgs.get(\"arg\");", startLine + 1);
+        sc.jprintln(" Object e = tagArgs.get(\"arg\");", startLine);
         // clear the runNextElse
         sc.jprintln(" clearElseFlag();");
         // do the if
@@ -84,7 +77,7 @@ public class GTInternalTagsCompiler {
 
     public void tag_ifnot(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc, int startLine) {
         // extract the argument named "arg"
-        sc.jprintln(" Object e = tagArgs.get(\"arg\");", startLine + 1);
+        sc.jprintln(" Object e = tagArgs.get(\"arg\");", startLine);
 
         // clear the runNextElse
         sc.jprintln(" clearElseFlag();");
@@ -96,7 +89,7 @@ public class GTInternalTagsCompiler {
         // run the else if runNextElse is true
 
         // do the if
-        sc.jprintln(" if( elseFlagIsSet()) {" + contentMethodName + "();}", startLine + 1);
+        sc.jprintln(" if( elseFlagIsSet()) {" + contentMethodName + "();}", startLine);
 
         // clear runNextElse
         sc.jprintln(" clearElseFlag();");
@@ -106,7 +99,7 @@ public class GTInternalTagsCompiler {
         // run the elseif if runNextElse is true AND expression is true
 
         // do the if
-        sc.jprintln(" if( elseFlagIsSet()) {", startLine + 1);
+        sc.jprintln(" if( elseFlagIsSet()) {", startLine);
 
         // Just include the regluar if-tag here..
         tag_if(tagName, contentMethodName, sc, startLine);
@@ -118,10 +111,10 @@ public class GTInternalTagsCompiler {
         // the template we extends is the single argument named 'args'
 
         String templateNameVar = "_tn_"+ (sc.nextMethodIndex++);
-        sc.jprintln(" String "+templateNameVar + " = (String)tagArgs.get(\"arg\");", startLine +1 );
+        sc.jprintln(" String "+templateNameVar + " = (String)tagArgs.get(\"arg\");", startLine );
         // must check runtime that the template exists
         sc.jprintln(" if(!this.templateRepo.templateExists("+templateNameVar+")) " +
-                "{throw new play.template2.exceptions.GTTemplateNotFoundWithSourceInfo("+templateNameVar+", this.templateFile, "+(startLine+1)+");}", startLine+1);
+                "{throw new play.template2.exceptions.GTTemplateNotFoundWithSourceInfo("+templateNameVar+", this.templateFile, "+(startLine+1)+");}");
 
         sc.jprintln(" this.extendsTemplatePath = "+templateNameVar+";");
 
@@ -131,7 +124,7 @@ public class GTInternalTagsCompiler {
     // used when dumping the output from the template that extended this one
     public void tag_doLayout(String tagName, String contentMethodName, GTPreCompiler.SourceContext sc, int startLine) {
         // someone is extending us - and we are supposed to dump the output now..
-        sc.jprintln(" if( this.extendingTemplate == null) throw new play.template2.exceptions.GTRuntimeException(\"No template is currently extending this template\");", startLine + 1);
+        sc.jprintln(" if( this.extendingTemplate == null) throw new play.template2.exceptions.GTRuntimeException(\"No template is currently extending this template\");", startLine);
         // inject all the output from the extending template into our output stream
         sc.jprintln(" this.insertOutput(this.extendingTemplate);");
 
@@ -141,7 +134,7 @@ public class GTInternalTagsCompiler {
 
 
     protected static void generateContentOutputCapturing( String contentMethodName, String outputVariableName, GTPreCompiler.SourceContext sc, int line) {
-        sc.jprintln("//generateContentOutputCapturing", line + 1);
+        sc.jprintln("//generateContentOutputCapturing", line);
         // remember the original out
         sc.jprintln("StringWriter org = out;");
         // remember the original list

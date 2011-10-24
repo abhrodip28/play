@@ -4,7 +4,7 @@ import play.mvc.Http;
 import play.template2.GTContentRenderer;
 import play.template2.GTFastTagResolver;
 import play.template2.GTJavaBase;
-import play.template2.exceptions.GTRuntimeException;
+import play.template2.exceptions.GTTemplateRuntimeException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
@@ -30,7 +30,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
         try {
             Method m = getClass().getMethod("tag_"+tagName,GTJavaBase.class, Map.class, GTContentRenderer.class);
             if (!Modifier.isStatic(m.getModifiers())) {
-                throw new GTRuntimeException("A fast-tag method must be static: " + m);
+                throw new RuntimeException("A fast-tag method must be static: " + m);
             }
         } catch( NoSuchMethodException e) {
             // not found
@@ -52,7 +52,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
         String key = args.get("arg").toString();
         if ( key == null) {
-            throw new GTRuntimeException("Specify a variable name when using #{get/}");
+            throw new GTTemplateRuntimeException("Specify a variable name when using #{get/}");
         }
 
         // we must get from the template that extended us.
@@ -99,7 +99,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
             try {
                 value = out.toString(encoding);
             } catch (UnsupportedEncodingException e) {
-                throw new GTRuntimeException(e);
+                throw new RuntimeException(e);
             }
         }
 
@@ -127,7 +127,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
     public static void tag_ifError(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
         Object key = args.get("arg");
         if (key==null) {
-            throw new GTRuntimeException("Please specify the error key");
+            throw new GTTemplateRuntimeException("Please specify the error key");
         }
         if ( template.validationHasError(key.toString())) {
             template.clearElseFlag();
@@ -140,7 +140,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
     public static void tag_include(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
         if (!args.containsKey("arg") || args.get("arg") == null) {
-            throw new GTRuntimeException("Specify a template name");
+            throw new GTTemplateRuntimeException("Specify a template name");
         }
         String name = args.get("arg").toString();
         if (name.startsWith("./")) {
@@ -201,7 +201,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
             try {
                 contentString = out.toString("utf-8");
             } catch (UnsupportedEncodingException e) {
-                throw new GTRuntimeException(e);
+                throw new RuntimeException(e);
             }
             template.binding.setProperty(as, contentString);
 

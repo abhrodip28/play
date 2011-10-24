@@ -1,7 +1,6 @@
 package play.template2;
 
 import org.junit.Test;
-import play.templates.gt_integration.GTIntegration1X;
 
 import java.io.File;
 import java.util.Date;
@@ -36,7 +35,7 @@ public class GTTemplateRepoTest {
     }
 
     private GTTemplateRepo createRepo() {
-        return new GTTemplateRepo(getClass().getClassLoader(), true, new GTIntegration1X(), null);
+        return new GTTemplateRepo(getClass().getClassLoader(), true, null);
     }
 
     @Test
