@@ -358,7 +358,7 @@ class IamADeveloper(unittest.TestCase):
         step('Make a mistake in the template')
         time.sleep(1)
         
-        edit(app, 'app/views/Application/index.html', 4, "Hello ${name !!")
+        edit(app, 'app/views/Application/index.html', 4, "Hello #{unclosed-tag}")
         try:
             response = browser.reload()
             self.fail()

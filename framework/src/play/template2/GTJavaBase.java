@@ -41,8 +41,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     public GTTemplateRepo templateRepo;
 
-    public final String templatePath;
-    public final File templateFile;
+    public final GTTemplateLocation templateLocation;
 
 
     // this gets a value (injected) after the template is new'ed - contains line-mapping info
@@ -50,10 +49,9 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     public static ThreadLocal<Map<Object, Object>> layoutData = new ThreadLocal<Map<Object, Object>>();
 
-    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, String templatePath, File templateFile ) {
+    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation ) {
         this.groovyClass = groovyClass;
-        this.templatePath = templatePath;
-        this.templateFile = templateFile;
+        this.templateLocation = templateLocation;
 
         initNewOut();
 
@@ -175,7 +173,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         Class rawDataClass = getRawDataClass();
         if (rawDataClass != null && rawDataClass.isAssignableFrom(o.getClass())) {
             return convertRawDataToString(o);
-        } else if (!templatePath.endsWith(".html") || GTTagContext.hasParentTag("verbatim")) {
+        } else if (!templateLocation.queryPath.endsWith(".html") || GTTagContext.hasParentTag("verbatim")) {
             return o.toString();
         } else {
             return escapeHTML( o.toString());

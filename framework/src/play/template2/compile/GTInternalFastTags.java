@@ -131,7 +131,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
         }
         String name = args.get("arg").toString();
         if (name.startsWith("./")) {
-            String ct = template.templatePath;
+            String ct = template.templateLocation.queryPath;
             if (ct.matches("^/lib/[^/]+/app/views/.*")) {
                 ct = ct.substring(ct.indexOf("/", 5));
             }

@@ -2,10 +2,10 @@ package play.template2.exceptions;
 
 public class GTTemplateNotFound extends GTException {
 
-    public final String templatePath;
+    public final String queryPath;
 
-    public GTTemplateNotFound(String templatePath) {
-        super("Cannot find template file " + templatePath);
-        this.templatePath = templatePath;
+    public GTTemplateNotFound(String queryPath) {
+        super("Cannot find template file " + queryPath);
+        this.queryPath = queryPath;
     }
 }

@@ -15,14 +15,14 @@
 
 	*{ Pages }*
 
-	%{ for (i in 1..nbPages) { }%
+	#{list items: 1..nbPages, as: 'i'}
 		#{if _page == i}
 			<strong>${i}</strong>
 		#{/if}
 		#{else}
 			<a href="${request.path}?page=${i}">${i}</a>
 		#{/else}
-	%{ } }%
+	#{/list}
 
 	*{ Next }*
 

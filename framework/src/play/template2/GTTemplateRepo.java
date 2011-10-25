@@ -23,32 +23,31 @@ public class GTTemplateRepo {
     public final boolean checkForChanges;
     public final GTPreCompilerFactory preCompilerFactory;
 
-    public static GTTemplateFileResolver templateFileResolver = new GTDefaultTemplateFileResolver();
+
 
     private Map<String, TemplateInfo> loadedTemplates = new HashMap<String, TemplateInfo>();
     private Map<String, TemplateInfo> classname2TemplateInfo = new HashMap<String, TemplateInfo>();
 
 
     private static class TemplateInfo {
-        public final File file;
+        public final GTTemplateLocationReal templateLocation;
         public final long fileSize;
         public final long fileDate;
         public final GTTemplateInstanceFactory templateInstanceFactory;
         public final GTCompiler.CompiledTemplate compiledTemplate;
-        public final String templatePath;
 
-        private TemplateInfo(File file, GTTemplateInstanceFactory templateInstanceFactory, GTCompiler.CompiledTemplate compiledTemplate, String templatePath) {
-            this.file = file;
+        private TemplateInfo(GTTemplateLocationReal templateLocation, GTTemplateInstanceFactory templateInstanceFactory, GTCompiler.CompiledTemplate compiledTemplate) {
+            this.templateLocation = templateLocation;
             // store fileSize and time so we can detech changes.
+            File file = templateLocation.realFile;
             fileSize = file.length();
             fileDate = file.lastModified();
             this.templateInstanceFactory = templateInstanceFactory;
             this.compiledTemplate = compiledTemplate;
-            this.templatePath = templatePath;
         }
 
         public boolean isModified() {
-            File freshFile = new File(file.getAbsolutePath());
+            File freshFile = new File(templateLocation.realFile.getAbsolutePath());
             if (!freshFile.exists() || !freshFile.isFile()) {
                 return true;
             }
@@ -79,10 +78,10 @@ public class GTTemplateRepo {
     }
 
 
-    public boolean templateExists( String templatePath) {
-        File file = templateFileResolver.resolveTemplatePathToFile( templatePath);
+    public boolean templateExists( String queryPath) {
 
-        if ( file == null || !file.exists() || !file.isFile() ) {
+        final GTTemplateLocation templateLocation = GTFileResolver.impl.getTemplateLocationReal( queryPath);
+        if ( templateLocation == null ) {
             return false;
         }
         return true;
@@ -98,18 +97,19 @@ public class GTTemplateRepo {
         classname2TemplateInfo.put(ti.compiledTemplate.templateClassName, ti);
     }
 
-    public GTJavaBase getTemplateInstance( String templatePath) throws GTTemplateNotFound {
+    public GTJavaBase getTemplateInstance( final String queryPath) throws GTTemplateNotFound {
 
         // Is this a loaded template ?
-        TemplateInfo ti = loadedTemplates.get(templatePath);
+        TemplateInfo ti = loadedTemplates.get(queryPath);
         if ( ti == null || checkForChanges ) {
             synchronized(loadedTemplates) {
-                ti = loadedTemplates.get(templatePath);
+
+                ti = loadedTemplates.get(queryPath);
                 if ( ti != null) {
                     // is it changed on disk?
                     if (ti.isModified()) {
                         // remove it
-                        removeTemplate( templatePath);
+                        removeTemplate( queryPath);
                         ti = null;
                     }
                 }
@@ -117,20 +117,18 @@ public class GTTemplateRepo {
                 if (ti == null) {
                     // new or modified - must compile it
 
+                    final GTTemplateLocationReal templateLocation = GTFileResolver.impl.getTemplateLocationReal( queryPath);
+                    if ( templateLocation == null ) {
+                        throw new GTTemplateNotFound( queryPath );
+                    }
+
                     try {
-                        // Must map templatePath to File
-                        File file = templateFileResolver.resolveTemplatePathToFile( templatePath);
-
-                        if ( file == null || !file.exists() || !file.isFile() ) {
-                            throw new GTTemplateNotFound(templatePath);
-                        }
-
                         // compile it
-                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory).compile( templatePath, file);
+                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory).compile( templateLocation);
 
                         GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
 
-                        ti = new TemplateInfo(file, templateInstanceFactory, compiledTemplate, templatePath);
+                        ti = new TemplateInfo(templateLocation, templateInstanceFactory, compiledTemplate);
                     } catch(GTTemplateNotFound e) {
                         throw e;
                     } catch(GTCompilationExceptionWithSourceInfo e) {
@@ -141,13 +139,13 @@ public class GTTemplateRepo {
                     }
 
                     // store it
-                    addTemplate(templatePath, ti);
+                    addTemplate(templateLocation.relativePath, ti);
 
                 }
             }
         } else {
             if ( ti == null) {
-                throw new GTTemplateNotFound(templatePath);
+                throw new GTTemplateNotFound(queryPath);
             }
         }
 
@@ -232,7 +230,7 @@ public class GTTemplateRepo {
                             // java
                             lineNo = ti.compiledTemplate.javaLineMapper.translateLineNo(se.getLineNumber());
                         }
-                        se = new StackTraceElement(ti.templatePath, "", "line", lineNo);
+                        se = new StackTraceElement(ti.templateLocation.relativePath, "", "line", lineNo);
                     }
                 } else {
                     // just leave it as is
@@ -261,7 +259,7 @@ public class GTTemplateRepo {
         if ( errorTI != null) {
             // The top-most error is a template error and we have the source.
             // generate GTRuntimeExceptionWithSourceInfo
-            GTRuntimeExceptionWithSourceInfo newE = new GTRuntimeExceptionWithSourceInfo(e.getMessage(), e, errorTI.file, errorLine);
+            GTRuntimeExceptionWithSourceInfo newE = new GTRuntimeExceptionWithSourceInfo(e.getMessage(), e, errorTI.templateLocation, errorLine);
             newE.setStackTrace( newStackTranceAray) ;
             return newE;
         } else {

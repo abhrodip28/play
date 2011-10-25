@@ -7,3 +7,4 @@
 * integrate with old so that all "is the same"
 * port all fasttags
     * Remember to remove old impls
+* solve testrunner / _testrunner (and docviewer problem) - relativePath

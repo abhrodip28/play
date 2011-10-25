@@ -6,6 +6,7 @@ import play.i18n.Messages;
 import play.mvc.Router;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
+import play.template2.GTTemplateLocation;
 import play.template2.exceptions.GTRuntimeException;
 import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import play.templates.BaseTemplate;
@@ -16,8 +17,8 @@ import java.util.Map;
 
 public abstract class GTJavaBase1xImpl extends GTJavaBase {
 
-    public GTJavaBase1xImpl(Class<? extends GTGroovyBase> groovyClass, String templatePath, File templateFile) {
-        super(groovyClass, templatePath, templateFile);
+    public GTJavaBase1xImpl(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation) {
+        super(groovyClass, templateLocation);
     }
 
     // add extra methods used when resolving actions

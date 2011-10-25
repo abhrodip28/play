@@ -680,21 +680,21 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
             try {
                 template = Play.templateRepo.getTemplateInstance( templatePath );
             } catch ( GTTemplateNotFound e) {
-                throw new TemplateNotFoundException(e.templatePath);
+                throw new TemplateNotFoundException(e.queryPath);
             } catch (GTCompilationExceptionWithSourceInfo e) {
                 //e.printStackTrace();
-                throw new TemplateCompilationException( new TemplateGTWrapper(e.srcFile), e.lineNo, e.specialMessage);
+                throw new TemplateCompilationException( new TemplateGTWrapper(e.templateLocation.relativePath), e.oneBasedLineNo, e.specialMessage);
             } catch (GTCompilationException e) {
                 //e.printStackTrace();
-                throw new TemplateCompilationException( null, 0, e.getMessage());
+                throw new RuntimeException(e.getMessage(), e);
             }
 
             try {
                 throw new RenderTemplateGT( template, templateBinding.data);
             } catch ( GTTemplateNotFoundWithSourceInfo e) {
-                throw new TemplateNotFoundException(e.templatePath, new TemplateGTWrapper(e.srcFile), e.lineNo);
+                throw new TemplateNotFoundException(e.queryPath, new TemplateGTWrapper(e.templateLocation.relativePath), e.lineNo);
             } catch (GTRuntimeExceptionWithSourceInfo e){
-                throw new TemplateExecutionException( new TemplateGTWrapper(e.srcFile), e.lineNo, e.getMessage(), e);
+                throw new TemplateExecutionException( new TemplateGTWrapper(e.templateLocation.relativePath), e.lineNo, e.getMessage(), e);
             }
         }
 

@@ -22,7 +22,7 @@ public class GTInternalTagsCompiler {
         try {
             tagMethod.invoke(this, tagName, contentMethodName, sc, startLine);
         } catch (Exception e) {
-            throw new GTCompilationExceptionWithSourceInfo("Error generating code for tag '"+tagName+"'", sc.file, startLine, e);
+            throw new GTCompilationExceptionWithSourceInfo("Error generating code for tag '"+tagName+"'", sc.templateLocation, startLine+1, e);
         }
 
         return true;
@@ -114,7 +114,7 @@ public class GTInternalTagsCompiler {
         sc.jprintln(" String "+templateNameVar + " = (String)tagArgs.get(\"arg\");", startLine );
         // must check runtime that the template exists
         sc.jprintln(" if(!this.templateRepo.templateExists("+templateNameVar+")) " +
-                "{throw new play.template2.exceptions.GTTemplateNotFoundWithSourceInfo("+templateNameVar+", this.templateFile, "+(startLine+1)+");}");
+                "{throw new play.template2.exceptions.GTTemplateNotFoundWithSourceInfo("+templateNameVar+", this.templateLocation, "+(startLine+1)+");}");
 
         sc.jprintln(" this.extendsTemplatePath = "+templateNameVar+";");
 

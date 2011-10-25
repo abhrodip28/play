@@ -1,30 +1,33 @@
 package play.template2.exceptions;
 
 
+import play.template2.GTTemplateLocation;
+
 import java.io.File;
 
 public class GTCompilationExceptionWithSourceInfo extends GTCompilationException {
 
     public final String specialMessage;
-    public final File srcFile;
-    public final int lineNo;
+    public final GTTemplateLocation templateLocation;
+    public final int oneBasedLineNo;
 
-    public GTCompilationExceptionWithSourceInfo(String specialMessage, File srcFile, int lineNo) {
+
+    public GTCompilationExceptionWithSourceInfo(String specialMessage, GTTemplateLocation templateLocation, int oneBasedLineNo) {
         this.specialMessage = specialMessage;
-        this.srcFile = srcFile;
-        this.lineNo = lineNo;
+        this.templateLocation = templateLocation;
+        this.oneBasedLineNo = oneBasedLineNo;
     }
 
-    public GTCompilationExceptionWithSourceInfo(String specialMessage, File srcFile, int lineNo, Throwable throwable) {
+    public GTCompilationExceptionWithSourceInfo(String specialMessage, GTTemplateLocation templateLocation, int oneBasedLineNo, Throwable throwable) {
         super(throwable);
         this.specialMessage = specialMessage;
-        this.srcFile = srcFile;
-        this.lineNo = lineNo;
+        this.templateLocation = templateLocation;
+        this.oneBasedLineNo = oneBasedLineNo;
     }
 
     @Override
     public String getMessage() {
-        return String.format("CompilationError: %s. Template %s:%d", specialMessage, srcFile, lineNo);
+        return String.format("CompilationError: %s. Template %s:%d", specialMessage, templateLocation.relativePath, oneBasedLineNo);
     }
 
 }

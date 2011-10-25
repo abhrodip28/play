@@ -10,6 +10,7 @@ import org.codehaus.groovy.control.messages.Message;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.tools.GroovyClass;
+import play.template2.GTTemplateLocation;
 import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 
@@ -28,7 +29,7 @@ public class GTGroovyCompileToClass {
         this.parentClassLoader = parentClassLoader;
     }
 
-    public GTJavaCompileToClass.CompiledClass[] compileGroovySource( String templatePath, File templateFile, GTCompiler.LineMapper lineMapper, String groovySource) {
+    public GTJavaCompileToClass.CompiledClass[] compileGroovySource( GTTemplateLocation templateLocation, GTCompiler.LineMapper lineMapper, String groovySource) {
 
         final List<GroovyClass> groovyClassesForThisTemplate = new ArrayList<GroovyClass>();
 
@@ -66,7 +67,7 @@ public class GTGroovyCompileToClass {
             Message errorMessage = e.getErrorCollector().getError(0);
             if ( errorMessage instanceof SyntaxErrorMessage) {
                 SyntaxException se = ((SyntaxErrorMessage)errorMessage).getCause();
-                throw new GTCompilationExceptionWithSourceInfo(se.getOriginalMessage(), templateFile, lineMapper.translateLineNo(se.getLine()));
+                throw new GTCompilationExceptionWithSourceInfo(se.getOriginalMessage(), templateLocation, lineMapper.translateLineNo(se.getLine()));
             }
 
             throw new GTCompilationException("Error compiling groovy", e);

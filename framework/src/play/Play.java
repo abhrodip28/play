@@ -9,9 +9,11 @@ import play.libs.IO;
 import play.mvc.Http;
 import play.mvc.Router;
 import play.plugins.PluginCollection;
+import play.template2.GTFileResolver;
 import play.template2.GTTemplateRepo;
+import play.template2.compile.GTCompiler;
 import play.templates.TemplateLoader;
-import play.templates.gt_integration.GT_init1x;
+import play.templates.gt_integration.GTFileResolver1xImpl;
 import play.templates.gt_integration.PreCompilerFactory;
 import play.utils.OrderSafeProperties;
 import play.vfs.VirtualFile;
@@ -292,9 +294,9 @@ public class Play {
         // Enable a first classloader
         classloader = new ApplicationClassloader();
 
-        // init GT-templates
-        GT_init1x.initGTTemplateEngine(templatesPath);
-
+        // set up folder where we dump generated src
+        GTFileResolver.impl = new GTFileResolver1xImpl(templatesPath);
+        GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");
         templateRepo = new GTTemplateRepo( classloader,  Play.mode == Mode.DEV, new PreCompilerFactory());
 
 

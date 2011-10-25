@@ -1,5 +1,7 @@
 package play.template2.exceptions;
 
+import play.template2.GTTemplateLocation;
+
 import java.io.File;
 
 /**
@@ -11,29 +13,29 @@ import java.io.File;
  */
 public class GTRuntimeExceptionWithSourceInfo extends GTRuntimeException {
 
-    public final File srcFile;
+    public final GTTemplateLocation templateLocation;
     public final int lineNo;
 
-    public GTRuntimeExceptionWithSourceInfo(File srcFile, int lineNo) {
-        this.srcFile = srcFile;
+    public GTRuntimeExceptionWithSourceInfo(GTTemplateLocation templateLocation, int lineNo) {
+        this.templateLocation = templateLocation;
         this.lineNo = lineNo;
     }
 
-    public GTRuntimeExceptionWithSourceInfo(String s, File srcFile, int lineNo) {
+    public GTRuntimeExceptionWithSourceInfo(String s, GTTemplateLocation templateLocation, int lineNo) {
         super(s);
-        this.srcFile = srcFile;
+        this.templateLocation = templateLocation;
         this.lineNo = lineNo;
     }
 
-    public GTRuntimeExceptionWithSourceInfo(String s, Throwable throwable, File srcFile, int lineNo) {
+    public GTRuntimeExceptionWithSourceInfo(String s, Throwable throwable, GTTemplateLocation templateLocation, int lineNo) {
         super(s, throwable);
-        this.srcFile = srcFile;
+        this.templateLocation = templateLocation;
         this.lineNo = lineNo;
     }
 
-    public GTRuntimeExceptionWithSourceInfo(Throwable throwable, File srcFile, int lineNo) {
+    public GTRuntimeExceptionWithSourceInfo(Throwable throwable, GTTemplateLocation templateLocation, int lineNo) {
         super(throwable);
-        this.srcFile = srcFile;
+        this.templateLocation = templateLocation;
         this.lineNo = lineNo;
     }
 }

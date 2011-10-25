@@ -22,7 +22,7 @@ public class RenderTemplateGT extends Result {
 
     public void apply(Http.Request request, Http.Response response) {
         try {
-            final String name = template.templatePath;
+            final String name = template.templateLocation.queryPath;
             final String contentType = MimeTypes.getContentType(name, "text/plain");
 
             template.writeOutput(response.out, getEncoding());
