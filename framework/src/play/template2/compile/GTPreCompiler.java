@@ -10,7 +10,6 @@ import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.legacy.GTLegacyFastTagResolver;
 
-import javax.management.RuntimeErrorException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,8 +35,8 @@ public class GTPreCompiler {
 
     private GTInternalTagsCompiler gtInternalTagsCompiler = new GTInternalTagsCompiler();
 
-    private Map<String, String> expression2GroovyMethodLookup = new HashMap<String, String>();
-    private Map<String, String> tagArgs2GroovyMethodLookup = new HashMap<String, String>();
+    private Map<String, String> expression2GroovyMethodLookup = null;
+    private Map<String, String> tagArgs2GroovyMethodLookup = null;
 
     public GTFastTagResolver customFastTagResolver = null;
 
@@ -87,23 +86,31 @@ public class GTPreCompiler {
         }
 
 
-        public boolean needPimping(String srcFragment) {
+        public void checkNeedPimping(String srcFragment) {
             if ( alwaysOn) {
-                return false;
+                return ;
             }
 
             Boolean oldResult = alreadyPimpCheckedSrc.get( srcFragment);
             if ( oldResult != null) {
-                return oldResult;
+                // always negative
+                return ;
             }
 
             boolean newResult = pimpPattern.matcher(srcFragment).find();
 
-            alreadyPimpCheckedSrc.put(srcFragment, newResult);
+            if ( newResult ) {
+                // force us to go back and re-precompile with pimping
+                throw new NeedPimpingException();
+            }
 
-            return newResult;
+            alreadyPimpCheckedSrc.put(srcFragment, newResult);
         }
 
+    }
+
+    private static class NeedPimpingException extends RuntimeException {
+        
     }
 
     public static class SourceContext {
@@ -219,22 +226,25 @@ public class GTPreCompiler {
     static Pattern alwaysPimpGroovyP = Pattern.compile("^\\s*\\*\\{\\s*alwaysPimpGroovy\\s*\\}\\*\\s*$");
 
     public Output compile(final String src, final GTTemplateLocation templateLocation) {
-
-
         String[] lines = src.split("\\n");
-
-
 
         PimpInfo pimpInfo = new PimpInfo();
         pimpInfo.generate( getJavaExtensionClasses());
 
-        // check if always preCompiler-option alwaysPimpGroovy is on
-        if ( lines.length > 0) {
-            String firtsLine = lines[0];
-            if ( alwaysPimpGroovyP.matcher(firtsLine).find()) {
-                pimpInfo.alwaysOn = true;
-            }
+        try {
+            return internalCompile(lines, templateLocation, pimpInfo);
+        } catch ( NeedPimpingException e) {
+            // we found out that we need pimping. must re-run the precompile with pimping on
+            pimpInfo.alwaysOn = true;
+            return internalCompile(lines, templateLocation, pimpInfo);
         }
+    }
+
+
+    protected Output internalCompile(final String[] lines, final GTTemplateLocation templateLocation, final PimpInfo pimpInfo) {
+
+        expression2GroovyMethodLookup = new HashMap<String, String>();
+        tagArgs2GroovyMethodLookup = new HashMap<String, String>();
 
         SourceContext sc = new SourceContext(templateLocation, pimpInfo);
         sc.lines = lines;
@@ -574,16 +584,9 @@ public class GTPreCompiler {
             methodName = "expression_"+(sc.nextMethodIndex++);
             sc.gprintln("Object " + methodName + "() {", sc.currentLineNo);
 
-            boolean needPimping = sc.pimpInfo.needPimping(expression);
-            if ( needPimping) {
-                sc.gprintln(sc.pimpInfo.pimpStart);
-            }
+            sc.pimpInfo.checkNeedPimping(expression);
 
             sc.gprintln(" return " + expression + ";");
-
-            if ( needPimping) {
-                sc.gprintln(sc.pimpInfo.pimpEnd);
-            }
 
             sc.gprintln( "}");
 
@@ -713,16 +716,9 @@ public class GTPreCompiler {
             methodName = "args_"+fixStringForCode(tagName) + "_"+(sc.nextMethodIndex++);
             sc.gprintln("Map<String, Object> " + methodName + "() {", srcLine);
 
-            boolean needPimping = sc.pimpInfo.needPimping(tagArgString);
-            if ( needPimping) {
-                sc.gprintln(sc.pimpInfo.pimpStart);
-            }
+            sc.pimpInfo.checkNeedPimping(tagArgString);
 
             sc.gprintln(" return [" + tagArgString + "];", srcLine);
-
-            if ( needPimping) {
-                sc.gprintln(sc.pimpInfo.pimpEnd);
-            }
 
             sc.gprintln("}", srcLine);
 
@@ -911,19 +907,12 @@ public class GTPreCompiler {
                 sc.gprintln(" void " + groovyMethodName + "(java.io.PrintWriter out){", s.startLine);
 
 
-                boolean needPimping = sc.pimpInfo.needPimping(s.scriptSource);
-                if ( needPimping) {
-                    sc.gprintln(sc.pimpInfo.pimpStart);
-                }
+                sc.pimpInfo.checkNeedPimping(s.scriptSource);
 
                 int lineNo = s.startLine;
                 //gout.append(sc.pimpStart+"");
                 for ( String line : s.scriptSource.split("\n")) {
                     sc.gprintln(line, lineNo++);
-                }
-
-                if ( needPimping) {
-                    sc.gprintln( sc.pimpInfo.pimpEnd);
                 }
 
                 sc.gprintln(" }", lineNo);

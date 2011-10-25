@@ -9,3 +9,4 @@
     * Remember to remove old impls
 * solve testrunner / _testrunner (and docviewer problem) - relativePath
 * optimize getJavaExtensionClasses
+* optimize (important) GTPreCompiler and the whole pimp-detection
