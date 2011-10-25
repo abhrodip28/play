@@ -139,7 +139,7 @@ public class GTTemplateRepo {
                     }
 
                     // store it
-                    addTemplate(templateLocation.relativePath, ti);
+                    addTemplate(templateLocation.queryPath, ti);
 
                 }
             }

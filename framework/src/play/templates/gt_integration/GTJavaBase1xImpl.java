@@ -17,8 +17,8 @@ import java.util.Map;
 
 public abstract class GTJavaBase1xImpl extends GTJavaBase {
 
-    public GTJavaBase1xImpl(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation) {
-        super(groovyClass, templateLocation);
+    public GTJavaBase1xImpl(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation, boolean alwaysPimpingGroovy) {
+        super(groovyClass, templateLocation, alwaysPimpingGroovy);
     }
 
     // add extra methods used when resolving actions

@@ -13,8 +13,6 @@ import play.template2.exceptions.GTException;
  */
 public class GTGroovyBase extends Script {
 
-    public static final String __templateRef_propertyName = "____templateRef";
-
     @Override
     public Object run() {
         throw new GTException("This method must be overridden in generated groovy script");

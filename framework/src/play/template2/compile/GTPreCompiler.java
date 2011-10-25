@@ -10,6 +10,7 @@ import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.legacy.GTLegacyFastTagResolver;
 
+import javax.management.RuntimeErrorException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,11 +19,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,6 +45,67 @@ public class GTPreCompiler {
 
     private final GTTemplateRepo templateRepo;
 
+    public static class PimpInfo {
+        public boolean alwaysOn = false;
+        public String pimpStart;
+        public String pimpEnd;
+        private Pattern pimpPattern;
+        private Map<String, Boolean> alreadyPimpCheckedSrc = new HashMap<String, Boolean>();
+
+        public void generate(List<Class> javaExtensionClasses) {
+            // Must generate groovy pimp my lib stuff . myst be used in each groovy method that need pimping
+            StringBuilder pimpStart = new StringBuilder();
+            StringBuilder pimpEnd = new StringBuilder();
+            for (int i=0; i<javaExtensionClasses.size(); i++) {
+                Class clazz = javaExtensionClasses.get(i);
+                pimpStart.append("use(" + clazz.getName() + ") {");
+                pimpEnd.append("}");
+            }
+
+            this.pimpStart = pimpStart.toString();
+            this.pimpEnd = pimpEnd.toString();
+
+            // generate pattern that matches usage of all pimp-methods.
+
+            // collect all pimp-method names
+            Set<String> methodNames = new HashSet<String>();
+            for ( Class clazz : javaExtensionClasses) {
+                for (Method m : clazz.getDeclaredMethods() ) {
+                    methodNames.add( m.getName());
+                }
+            }
+
+            // Generate pattern
+            StringBuilder sb = new StringBuilder();
+            for ( String methodName : methodNames) {
+                sb.append("|.");
+                sb.append(methodName);
+                sb.append("\\s*\\(");
+            }
+
+            this.pimpPattern = Pattern.compile( sb.toString().substring(1));
+        }
+
+
+        public boolean needPimping(String srcFragment) {
+            if ( alwaysOn) {
+                return false;
+            }
+
+            Boolean oldResult = alreadyPimpCheckedSrc.get( srcFragment);
+            if ( oldResult != null) {
+                return oldResult;
+            }
+
+            boolean newResult = pimpPattern.matcher(srcFragment).find();
+
+            alreadyPimpCheckedSrc.put(srcFragment, newResult);
+
+            return newResult;
+        }
+
+    }
+
     public static class SourceContext {
         public final GTTemplateLocation templateLocation;
         // generated java code
@@ -53,14 +118,12 @@ public class GTPreCompiler {
         public int nextMethodIndex = 0;
 
 
-        public final String pimpStart;
-        public final String pimpEnd;
+        public final PimpInfo pimpInfo;
 
 
-        public SourceContext(GTTemplateLocation templateLocation, String pimpStart, String pimpEnd) {
+        public SourceContext(GTTemplateLocation templateLocation, PimpInfo pimpInfo) {
             this.templateLocation = templateLocation;
-            this.pimpStart = pimpStart;
-            this.pimpEnd = pimpEnd;
+            this.pimpInfo = pimpInfo;
         }
 
         public void jprintln(String line) {
@@ -153,22 +216,27 @@ public class GTPreCompiler {
         return compile(src, templateLocation);
     }
 
+    static Pattern alwaysPimpGroovyP = Pattern.compile("^\\s*\\*\\{\\s*alwaysPimpGroovy\\s*\\}\\*\\s*$");
+
     public Output compile(final String src, final GTTemplateLocation templateLocation) {
 
 
         String[] lines = src.split("\\n");
 
-        // Must generate groovy pimp my lib stuff . myst be used in each groovy method that need pimping
-        StringBuilder pimpStart = new StringBuilder();
-        StringBuilder pimpEnd = new StringBuilder();
-        List<String> javaExtensionClasses = getJavaExtensionClasses();
-        for (int i=0; i<javaExtensionClasses.size(); i++) {
-            String clazz = javaExtensionClasses.get(i);
-            pimpStart.append("use(" + clazz + ") {");
-            pimpEnd.append("}");
+
+
+        PimpInfo pimpInfo = new PimpInfo();
+        pimpInfo.generate( getJavaExtensionClasses());
+
+        // check if always preCompiler-option alwaysPimpGroovy is on
+        if ( lines.length > 0) {
+            String firtsLine = lines[0];
+            if ( alwaysPimpGroovyP.matcher(firtsLine).find()) {
+                pimpInfo.alwaysOn = true;
+            }
         }
 
-        SourceContext sc = new SourceContext(templateLocation, pimpStart.toString(), pimpEnd.toString());
+        SourceContext sc = new SourceContext(templateLocation, pimpInfo);
         sc.lines = lines;
 
         GTFragment fragment = null;
@@ -183,11 +251,13 @@ public class GTPreCompiler {
         sc.gprintln("class " + templateClassNameGroovy + " extends " + getGroovyBaseClass().getName() + " {");
 
 
-        sc.gprintln(" public Object run(){");
-        sc.gprintln(sc.pimpStart + "");
-        sc.gprintln(" java_class._renderTemplate();");
-        sc.gprintln(sc.pimpEnd + "");
-        sc.gprintln(" }");
+        if ( sc.pimpInfo.alwaysOn) {
+            sc.gprintln(" public Object run(){");
+            sc.gprintln(sc.pimpInfo.pimpStart + "");
+            sc.gprintln(" java_class._renderTemplate();");
+            sc.gprintln(sc.pimpInfo.pimpEnd + "");
+            sc.gprintln(" }");
+        }
 
         // generate java class
         sc.jprintln("package " + generatedPackageName + ";");
@@ -201,7 +271,7 @@ public class GTPreCompiler {
 
         // add constructor which initializes the templateClassNameGroovy-instance
         sc.jprintln(" public " + templateClassName + "() {");
-        sc.jprintln("  super(" + templateClassNameGroovy + ".class, new play.template2.GTTemplateLocation(\"" + templateLocation.queryPath + "\", \"" + templateLocation.relativePath + "\"));");
+        sc.jprintln("  super(" + templateClassNameGroovy + ".class, new play.template2.GTTemplateLocation(\"" + templateLocation.queryPath + "\", \"" + templateLocation.relativePath + "\"), "+sc.pimpInfo.alwaysOn+");");
         sc.jprintln(" }");
 
         rootFragments.add( new GTFragmentCode(1,"  this.g = ("+templateClassNameGroovy+")groovyScript;\n"));
@@ -503,10 +573,19 @@ public class GTPreCompiler {
 
             methodName = "expression_"+(sc.nextMethodIndex++);
             sc.gprintln("Object " + methodName + "() {", sc.currentLineNo);
-            //gout.append(sc.pimpStart+"");
-            sc.gprintln(" return " + expression + ";", sc.currentLineNo);
-            //gout.append(sc.pimpEnd+"");
-            sc.gprintln( "}", sc.currentLineNo);
+
+            boolean needPimping = sc.pimpInfo.needPimping(expression);
+            if ( needPimping) {
+                sc.gprintln(sc.pimpInfo.pimpStart);
+            }
+
+            sc.gprintln(" return " + expression + ";");
+
+            if ( needPimping) {
+                sc.gprintln(sc.pimpInfo.pimpEnd);
+            }
+
+            sc.gprintln( "}");
 
             expression2GroovyMethodLookup.put(expression, methodName);
         }
@@ -633,9 +712,18 @@ public class GTPreCompiler {
 
             methodName = "args_"+fixStringForCode(tagName) + "_"+(sc.nextMethodIndex++);
             sc.gprintln("Map<String, Object> " + methodName + "() {", srcLine);
-            //gout.append(sc.pimpStart+"");
+
+            boolean needPimping = sc.pimpInfo.needPimping(tagArgString);
+            if ( needPimping) {
+                sc.gprintln(sc.pimpInfo.pimpStart);
+            }
+
             sc.gprintln(" return [" + tagArgString + "];", srcLine);
-            //gout.append(sc.pimpEnd+"");
+
+            if ( needPimping) {
+                sc.gprintln(sc.pimpInfo.pimpEnd);
+            }
+
             sc.gprintln("}", srcLine);
 
             tagArgs2GroovyMethodLookup.put(tagArgString, methodName);
@@ -821,12 +909,23 @@ public class GTPreCompiler {
                 // first generate groovy method with script code
                 String groovyMethodName = "custom_script_" + (sc.nextMethodIndex++);
                 sc.gprintln(" void " + groovyMethodName + "(java.io.PrintWriter out){", s.startLine);
+
+
+                boolean needPimping = sc.pimpInfo.needPimping(s.scriptSource);
+                if ( needPimping) {
+                    sc.gprintln(sc.pimpInfo.pimpStart);
+                }
+
                 int lineNo = s.startLine;
                 //gout.append(sc.pimpStart+"");
                 for ( String line : s.scriptSource.split("\n")) {
                     sc.gprintln(line, lineNo++);
                 }
-                //gout.append(sc.pimpEnd+"");
+
+                if ( needPimping) {
+                    sc.gprintln( sc.pimpInfo.pimpEnd);
+                }
+
                 sc.gprintln(" }", lineNo);
 
                 // then generate call to that method from java
@@ -848,11 +947,12 @@ public class GTPreCompiler {
     public Class<? extends GTGroovyBase> getGroovyBaseClass() {
         return GTGroovyBase.class;
     }
+    
     public Class<? extends GTJavaBase> getJavaBaseClass() {
         return GTJavaBase.class;
     }
 
-    public List<String> getJavaExtensionClasses() {
+    public List<Class> getJavaExtensionClasses() {
         return Collections.emptyList();
     }
 

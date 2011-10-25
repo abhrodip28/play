@@ -85,14 +85,19 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
     }
 
     @Override
-    public List<String> getJavaExtensionClasses() {
-        List<String> extensionsClassnames = new ArrayList<String>(5);
-        extensionsClassnames.add(JavaExtensions.class.getName());
+    public List<Class> getJavaExtensionClasses() {
+        // TODO: too much work to do each time - must be optimized
+        List<Class> extensionsClassnames = new ArrayList<Class>(5);
+        extensionsClassnames.add(JavaExtensions.class);
         try {
-            extensionsClassnames.addAll( Play.pluginCollection.addTemplateExtensions());
+            for ( String moduleExtensionName : Play.pluginCollection.addTemplateExtensions()) {
+                Class clazz = Play.classloader.loadClass( moduleExtensionName);
+                extensionsClassnames.add( clazz );
+            }
+
             List<Class> extensionsClasses = Play.classloader.getAssignableClasses(JavaExtensions.class);
             for (Class extensionsClass : extensionsClasses) {
-                extensionsClassnames.add(extensionsClass.getName());
+                extensionsClassnames.add(extensionsClass);
             }
         } catch (Throwable e) {
             //

@@ -13,7 +13,7 @@ public class GTGroovyBase1xImpl extends GTGroovyBase {
         try {
             if (property.equals("actionBridge")) {
                 // special object used to resolving actions
-                GTJavaBase template = (GTJavaBase)super.getProperty(__templateRef_propertyName);
+                GTJavaBase template = (GTJavaBase)super.getProperty("java_class");
                 return new GroovyTemplate.ExecutableTemplate.ActionBridge(template.templateLocation.queryPath);
             }
             return super.getProperty(property);

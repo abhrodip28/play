@@ -42,6 +42,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public GTTemplateRepo templateRepo;
 
     public final GTTemplateLocation templateLocation;
+    protected final boolean alwaysPimpingGroovy;
 
 
     // this gets a value (injected) after the template is new'ed - contains line-mapping info
@@ -49,9 +50,10 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     public static ThreadLocal<Map<Object, Object>> layoutData = new ThreadLocal<Map<Object, Object>>();
 
-    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation ) {
+    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation, boolean alwaysPimpingGroovy ) {
         this.groovyClass = groovyClass;
         this.templateLocation = templateLocation;
+        this.alwaysPimpingGroovy = alwaysPimpingGroovy;
 
         initNewOut();
 
@@ -107,15 +109,25 @@ public abstract class GTJavaBase extends GTRenderingResult {
             // must store a copy of args, so we can pass the same (unchnaged) args to an extending template.
             this.orgArgs = new HashMap<String, Object>(args);
             this.binding = new Binding(args);
+            this.binding.setProperty("java_class", this);
             // must init our groovy script
 
             groovyScript = InvokerHelper.createScript(groovyClass, binding);
-            // create a property in groovy so that groovy can find us (this)
-            groovyScript.setProperty(GTGroovyBase.__templateRef_propertyName, this);
+            //groovyScript = groovyClass.newInstance();
+            //groovyScript.setBinding( binding );
 
-            groovyScript.setProperty("java_class", this);
-            groovyScript.run();
-            //_renderTemplate();
+
+            // create a property in groovy so that groovy can find us (this)
+            //groovyScript.setProperty("java_class", this);
+
+
+            if ( alwaysPimpingGroovy) {
+                // call groovy which pimps, then calls _renderTemplate
+                groovyScript.run();
+            } else {
+                // call _renderTemplate directly
+                _renderTemplate();
+            }
 
             // check if "we" have extended an other template..
             if (extendsTemplatePath != null) {

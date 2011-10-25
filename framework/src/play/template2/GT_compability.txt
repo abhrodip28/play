@@ -16,3 +16,5 @@ instead use:
 longValue = new Long(5);
 
 
+New feature/option:
+ * Precompiler option alwaysPimpGroovy
