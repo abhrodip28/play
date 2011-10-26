@@ -1,7 +1,7 @@
 package play.template2.compile;
 
 import play.template2.GTTemplateInstanceFactory;
-import play.template2.GTTemplateLocation;
+import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
 
 import java.io.ByteArrayInputStream;
@@ -139,7 +139,7 @@ public class GTCompiler {
         }
     }
 
-    public CompiledTemplate compile( GTTemplateLocation templateLocation) {
+    public CompiledTemplate compile( GTTemplateLocationReal templateLocation) {
         // precompile it
         GTPreCompiler.Output precompiled = preCompilerFactory.createCompiler(templateRepo).compile(templateLocation);
 

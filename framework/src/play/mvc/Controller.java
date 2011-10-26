@@ -20,12 +20,8 @@ import play.data.validation.ValidationPlugin;
 import play.exceptions.ContinuationsException;
 import play.exceptions.NoRouteFoundException;
 import play.exceptions.PlayException;
-import play.exceptions.TemplateCompilationException;
-import play.exceptions.TemplateExecutionException;
 import play.exceptions.TemplateNotFoundException;
 import play.exceptions.UnexpectedException;
-import play.i18n.Lang;
-import play.i18n.Messages;
 import play.libs.F;
 import play.libs.Time;
 import play.mvc.Http.Request;
@@ -42,20 +38,12 @@ import play.mvc.results.RenderBinary;
 import play.mvc.results.RenderHtml;
 import play.mvc.results.RenderJson;
 import play.mvc.results.RenderTemplate;
-import play.mvc.results.RenderTemplateGT;
 import play.mvc.results.RenderText;
 import play.mvc.results.RenderXml;
 import play.mvc.results.Result;
 import play.mvc.results.Unauthorized;
-import play.template2.GTJavaBase;
-import play.template2.exceptions.GTCompilationException;
-import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
-import play.template2.exceptions.GTRuntimeExceptionWithSourceInfo;
-import play.template2.exceptions.GTTemplateNotFound;
-import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import play.templates.Template;
 import play.templates.TemplateLoader;
-import play.templates.gt_integration.TemplateGTWrapper;
 import play.utils.Default;
 import play.utils.Java;
 import play.vfs.VirtualFile;
@@ -669,50 +657,8 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
         templateBinding.put("errors", Validation.errors());
 
 
-        if (1 == 1) {
-            templateBinding.put("_response_encoding", Request.current().encoding);
-            templateBinding.put("play", new Play());
-            templateBinding.put("messages", new Messages());
-            templateBinding.put("lang", Lang.get());
-
-            String templatePath = template(templateName);
-            GTJavaBase template;
-            try {
-                template = Play.templateRepo.getTemplateInstance( templatePath );
-            } catch ( GTTemplateNotFound e) {
-                throw new TemplateNotFoundException(e.queryPath);
-            } catch (GTCompilationExceptionWithSourceInfo e) {
-                //e.printStackTrace();
-                throw new TemplateCompilationException( new TemplateGTWrapper(e.templateLocation.relativePath), e.oneBasedLineNo, e.specialMessage);
-            } catch (GTCompilationException e) {
-                //e.printStackTrace();
-                throw new RuntimeException(e.getMessage(), e);
-            }
-
-            try {
-                throw new RenderTemplateGT( template, templateBinding.data);
-            } catch ( GTTemplateNotFoundWithSourceInfo e) {
-                throw new TemplateNotFoundException(e.queryPath, new TemplateGTWrapper(e.templateLocation.relativePath), e.lineNo);
-            } catch (GTRuntimeExceptionWithSourceInfo e){
-                throw new TemplateExecutionException( new TemplateGTWrapper(e.templateLocation.relativePath), e.lineNo, e.getMessage(), e);
-            }
-        }
-
-
-        try {
-            Template template = TemplateLoader.load(template(templateName));
-            throw new RenderTemplate(template, templateBinding.data);
-        } catch (TemplateNotFoundException ex) {
-            if (ex.isSourceAvailable()) {
-                throw ex;
-            }
-            StackTraceElement element = PlayException.getInterestingStrackTraceElement(ex);
-            if (element != null) {
-                throw new TemplateNotFoundException(templateName, Play.classes.getApplicationClass(element.getClassName()), element.getLineNumber());
-            } else {
-                throw ex;
-            }
-        }
+        Template template = TemplateLoader.load(template(templateName));
+        throw new RenderTemplate(template, templateBinding.data);
     }
 
     /**

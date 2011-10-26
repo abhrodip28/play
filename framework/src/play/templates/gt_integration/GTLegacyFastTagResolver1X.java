@@ -60,7 +60,7 @@ public class GTLegacyFastTagResolver1X implements GTLegacyFastTagResolver {
                     if ( namespace != null ) {
                         namespacePrefix = namespace.value() + ".";
                     }
-                    for ( Method m : clazz.getMethods()) {
+                    for ( Method m : clazz.getDeclaredMethods()) {
 
                         if (m.getName().startsWith("_") && Modifier.isStatic(m.getModifiers()) ) {
                             String tagName = namespacePrefix + m.getName().substring(1);

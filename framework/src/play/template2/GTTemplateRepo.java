@@ -78,9 +78,9 @@ public class GTTemplateRepo {
     }
 
 
-    public boolean templateExists( String queryPath) {
+    public boolean templateExists( String relativePath) {
 
-        final GTTemplateLocation templateLocation = GTFileResolver.impl.getTemplateLocationReal( queryPath);
+        final GTTemplateLocation templateLocation = GTFileResolver.impl.getTemplateLocationReal( relativePath );
         if ( templateLocation == null ) {
             return false;
         }
@@ -97,19 +97,19 @@ public class GTTemplateRepo {
         classname2TemplateInfo.put(ti.compiledTemplate.templateClassName, ti);
     }
 
-    public GTJavaBase getTemplateInstance( final String queryPath) throws GTTemplateNotFound {
+    public GTJavaBase getTemplateInstance( final GTTemplateLocationReal templateLocation) throws GTTemplateNotFound {
 
         // Is this a loaded template ?
-        TemplateInfo ti = loadedTemplates.get(queryPath);
+        TemplateInfo ti = loadedTemplates.get(templateLocation.relativePath);
         if ( ti == null || checkForChanges ) {
             synchronized(loadedTemplates) {
 
-                ti = loadedTemplates.get(queryPath);
+                ti = loadedTemplates.get(templateLocation.relativePath);
                 if ( ti != null) {
                     // is it changed on disk?
                     if (ti.isModified()) {
                         // remove it
-                        removeTemplate( queryPath);
+                        removeTemplate( templateLocation.relativePath);
                         ti = null;
                     }
                 }
@@ -117,9 +117,8 @@ public class GTTemplateRepo {
                 if (ti == null) {
                     // new or modified - must compile it
 
-                    final GTTemplateLocationReal templateLocation = GTFileResolver.impl.getTemplateLocationReal( queryPath);
-                    if ( templateLocation == null ) {
-                        throw new GTTemplateNotFound( queryPath );
+                    if ( !templateLocation.realFile.exists() || !templateLocation.realFile.isFile()) {
+                        throw new GTTemplateNotFound( templateLocation.relativePath);
                     }
 
                     try {
@@ -139,13 +138,13 @@ public class GTTemplateRepo {
                     }
 
                     // store it
-                    addTemplate(templateLocation.queryPath, ti);
+                    addTemplate(templateLocation.relativePath, ti);
 
                 }
             }
         } else {
             if ( ti == null) {
-                throw new GTTemplateNotFound(queryPath);
+                throw new GTTemplateNotFound(templateLocation.relativePath);
             }
         }
 

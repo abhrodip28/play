@@ -2,6 +2,7 @@ package play.templates;
 
 import org.junit.Test;
 import play.PlayBuilder;
+import play.template2.compile.GTPreCompiler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -102,9 +103,7 @@ public class GroovyTemplateTest {
                 "    i${item2} - ${item2_index} - ${item2_parity}\n" +
                 "#{/list}";
 
-        GroovyTemplate t = new GroovyTemplate("Template_123", groovySrc);
-        new GroovyTemplateCompiler().compile(t);
-
+        Template t = TemplateLoader.loadString(groovySrc);
 
         List<Integer> myList = new ArrayList<Integer>();
         for (int i=0;i<1;i++) {
@@ -134,8 +133,7 @@ public class GroovyTemplateTest {
 
         String groovySrc = "hello world: ${name}";
 
-        GroovyTemplate t = new GroovyTemplate("Template_123", groovySrc);
-        new GroovyTemplateCompiler().compile(t);
+        Template t = TemplateLoader.loadString(groovySrc);
 
         Map<String, Object> args = new HashMap<String,Object>();
         args.put("name", "Morten");
@@ -159,10 +157,9 @@ public class GroovyTemplateTest {
 
         String groovySrc = "hello world"+longString+": ${name}";
         // make sure our test line is longer then maxPlainTextLength
-        assertThat(groovySrc.length()).isGreaterThan( GroovyTemplateCompiler.maxPlainTextLength + 100);
+        assertThat(groovySrc.length()).isGreaterThan( GTPreCompiler.maxPlainTextLength + 100);
 
-        GroovyTemplate t = new GroovyTemplate("Template_123", groovySrc);
-        new GroovyTemplateCompiler().compile(t);
+        Template t = TemplateLoader.loadString(groovySrc);
 
         Map<String, Object> args = new HashMap<String,Object>();
         args.put("name", "Morten");
@@ -196,14 +193,13 @@ public class GroovyTemplateTest {
         }
 
         // now insert a special char on the last line before we split the plainText with new print
-        longString.insert(GroovyTemplateCompiler.maxPlainTextLength-1, lastChar);
+        longString.insert(GTPreCompiler.maxPlainTextLength-1, lastChar);
 
         String groovySrc = longString+": ${name}";
         // make sure our test line is longer then maxPlainTextLength
-        assertThat(groovySrc.length()).isGreaterThan( GroovyTemplateCompiler.maxPlainTextLength + 100);
+        assertThat(groovySrc.length()).isGreaterThan( GTPreCompiler.maxPlainTextLength + 100);
 
-        GroovyTemplate t = new GroovyTemplate("Template_123", groovySrc);
-        new GroovyTemplateCompiler().compile(t);
+        Template t = TemplateLoader.loadString(groovySrc);
 
         Map<String, Object> args = new HashMap<String,Object>();
         args.put("name", "Morten");

@@ -12,7 +12,6 @@ import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import play.templates.BaseTemplate;
 import play.utils.HTML;
 
-import java.io.File;
 import java.util.Map;
 
 public abstract class GTJavaBase1xImpl extends GTJavaBase {
@@ -65,7 +64,7 @@ public abstract class GTJavaBase1xImpl extends GTJavaBase {
     }
 
     @Override
-    protected void internalRenderTemplate(Map<String, Object> args, boolean startingNewRendering) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException {
+    public void internalRenderTemplate(Map<String, Object> args, boolean startingNewRendering) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException {
         // make sure the old layoutData referees to the same in map-instance as what the new impl uses
         BaseTemplate.layoutData.set( GTJavaBase.layoutData.get() );
         super.internalRenderTemplate(args, startingNewRendering);

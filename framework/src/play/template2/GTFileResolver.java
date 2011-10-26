@@ -1,7 +1,5 @@
 package play.template2;
 
-import java.io.File;
-
 public class GTFileResolver {
 
     /**
@@ -12,8 +10,7 @@ public class GTFileResolver {
 
     public static interface Resolver {
         public GTTemplateLocationReal getTemplateLocationReal(String queryPath);
-
-        public File getRealFile( String relativePath);
+        public GTTemplateLocationReal getTemplateLocationFromRelativePath(String relativePath);
     }
 
 }

@@ -5,11 +5,13 @@ import groovy.lang.Script;
 import org.apache.commons.collections.iterators.ArrayIterator;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import play.template2.compile.GTCompiler;
+import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTRuntimeException;
+import play.template2.exceptions.GTTemplateNotFound;
 import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import play.template2.exceptions.GTTemplateRuntimeException;
+import play.template2.legacy.GTContentRendererFakeClosure;
 
-import java.io.File;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.Collection;
@@ -97,7 +99,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
     }
     
 
-    protected void internalRenderTemplate(Map<String, Object> args, boolean startingNewRendering) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException{
+    public void internalRenderTemplate(Map<String, Object> args, boolean startingNewRendering) throws GTTemplateNotFoundWithSourceInfo, GTRuntimeException{
 
         if ( startingNewRendering) {
             // start with fresh tag-stack
@@ -133,7 +135,11 @@ public abstract class GTJavaBase extends GTRenderingResult {
             if (extendsTemplatePath != null) {
                 // yes, we've extended another template
                 // Get the template we are extending
-                extendedTemplate = templateRepo.getTemplateInstance( extendsTemplatePath);
+                GTTemplateLocationReal extendedTemplateLocation = GTFileResolver.impl.getTemplateLocationReal(extendsTemplatePath);
+                if ( extendedTemplateLocation == null ) {
+                    throw new GTTemplateNotFound(extendsTemplatePath);
+                }
+                extendedTemplate = templateRepo.getTemplateInstance( extendedTemplateLocation );
 
                 // tell it that "we" extended it..
                 extendedTemplate.extendingTemplate = this;
@@ -145,6 +151,9 @@ public abstract class GTJavaBase extends GTRenderingResult {
         } catch( GTTemplateNotFoundWithSourceInfo e) {
             throw e;
         } catch ( GTRuntimeException e) {
+            // just throw it
+            throw e;
+        } catch ( GTCompilationException e) {
             // just throw it
             throw e;
         } catch ( Throwable e) {
@@ -185,7 +194,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
         Class rawDataClass = getRawDataClass();
         if (rawDataClass != null && rawDataClass.isAssignableFrom(o.getClass())) {
             return convertRawDataToString(o);
-        } else if (!templateLocation.queryPath.endsWith(".html") || GTTagContext.hasParentTag("verbatim")) {
+        } else if (!templateLocation.relativePath.endsWith(".html") || GTTagContext.hasParentTag("verbatim")) {
             return o.toString();
         } else {
             return escapeHTML( o.toString());
@@ -211,7 +220,16 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     protected void invokeTagFile(String tagName, String tagFilePath, GTContentRenderer contentRenderer, Map<String, Object> tagArgs) {
 
-        GTJavaBase tagTemplate = templateRepo.getTemplateInstance(tagFilePath);
+        // Add new arg named "body" which is a fake closure which can be used to get the text-output
+        // from the content of this tag..
+        // Used in selenium.html-template
+        tagArgs.put("body", new GTContentRendererFakeClosure(this, contentRenderer));
+
+        GTTemplateLocationReal tagTemplateLocation = GTFileResolver.impl.getTemplateLocationReal(tagFilePath);
+        if ( tagTemplateLocation == null ) {
+            throw new GTTemplateRuntimeException("Cannot find tag-file '"+tagFilePath+"'");
+        }
+        GTJavaBase tagTemplate = templateRepo.getTemplateInstance(tagTemplateLocation);
         // must set contentRenderes so that when the tag/template calls doBody, we can inject the output of the content of this tag
         tagTemplate.contentRenderer = contentRenderer;
         // render the tag

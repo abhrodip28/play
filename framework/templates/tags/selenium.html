@@ -7,20 +7,21 @@
     </thead>
     <tbody>
       #{list items:_body.toString().split('\n'), as:'command'}
-      %{ if(command.trim().startsWith('//') || command.trim().startsWith('#')) { %}
+      #{if command.trim().startsWith('//') || command.trim().startsWith('#')}
         <tr>
             <td colspan="3" style="font-style:italic; background: #e2e2e2">${command}</td>
         </tr>
-      %{ } else { 
-            def parts = play.test.Helpers.seleniumCommand(command); }%
-            %{ if(parts && parts[0]) { }%
+      #{/if}
+      #{else}
+            %{ parts = play.test.Helpers.seleniumCommand(command); }%
+            #{if parts && parts[0]}
               <tr>
                 <td width="33%">${parts[0] ?: ''}</td>
                 <td width="33%">${parts[1] ?: ''}</td>
                 <td>${parts[2] ?: ''}</td>
               </tr>
-            %{ } }%
-      %{ } }%
+            #{/if}
+      #{/else}
       #{/list}
     </tbody>
 </table>

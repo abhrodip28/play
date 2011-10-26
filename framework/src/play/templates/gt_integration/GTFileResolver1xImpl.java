@@ -32,13 +32,13 @@ public class GTFileResolver1xImpl implements GTFileResolver.Resolver {
                 // look for template in working dir.
                 File file = new File(queryPath);
                 if (file.exists() && file.isFile()) {
-                    return new GTTemplateLocationReal(queryPath, VirtualFile.open(file).relativePath(), file);
+                    return new GTTemplateLocationReal(VirtualFile.open(file).relativePath(), file);
                 }
             } else {
 
                 File file = new File ( folder, queryPath);
                 if (file.exists() && file.isFile()) {
-                    return new GTTemplateLocationReal(queryPath, VirtualFile.open(file).relativePath(), file);
+                    return new GTTemplateLocationReal(VirtualFile.open(file).relativePath(), file);
                 }
             }
         }
@@ -46,11 +46,13 @@ public class GTFileResolver1xImpl implements GTFileResolver.Resolver {
         return null;
     }
 
-    public File getRealFile(String relativePath) {
+    public GTTemplateLocationReal getTemplateLocationFromRelativePath(String relativePath) {
         VirtualFile vf = VirtualFile.fromRelativePath(relativePath);
         if ( vf == null || !vf.exists() || vf.isDirectory()) {
             return null;
         }
-        return vf.getRealFile();
+
+        return new GTTemplateLocationReal(relativePath, vf.getRealFile());
     }
+
 }

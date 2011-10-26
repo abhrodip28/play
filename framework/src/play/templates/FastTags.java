@@ -377,7 +377,7 @@ public class FastTags {
                 name = ct + name.substring(1);
             }
             args.remove("arg");
-            BaseTemplate t = (BaseTemplate) TemplateLoader.load(name);
+            Template t = (Template) TemplateLoader.load(name);
             Map<String, Object> newArgs = new HashMap<String, Object>();
             newArgs.putAll((Map<? extends String, ? extends Object>) args);
             newArgs.put("_isInclude", true);

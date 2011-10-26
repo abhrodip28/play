@@ -1,53 +1,41 @@
 package play.templates;
 
+import play.Logger;
+import play.Play;
+import play.exceptions.TemplateCompilationException;
+import play.exceptions.TemplateNotFoundException;
+import play.template2.GTFileResolver;
+import play.template2.GTJavaBase;
+import play.template2.GTTemplateLocationReal;
+import play.template2.GTTemplateRepo;
+import play.template2.compile.GTCompiler;
+import play.template2.exceptions.GTCompilationException;
+import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
+import play.template2.exceptions.GTTemplateNotFound;
+import play.templates.gt_integration.GTFileResolver1xImpl;
+import play.templates.gt_integration.PreCompilerFactory;
+import play.vfs.VirtualFile;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-
-import play.Logger;
-import play.Play;
-import play.vfs.VirtualFile;
-import play.exceptions.TemplateCompilationException;
-import play.exceptions.TemplateNotFoundException;
 
 /**
  * Load templates
  */
 public class TemplateLoader {
 
-    protected static Map<String, BaseTemplate> templates = new HashMap<String, BaseTemplate>();
-    /**
-     * See getUniqueNumberForTemplateFile() for more info
-     */
-    private static AtomicLong nextUniqueNumber = new AtomicLong(1000);//we start on 1000
-    private static Map<String, String> templateFile2UniqueNumber = new HashMap<String, String>();
+    private static GTTemplateRepo templateRepo;
+    private static Map<String, Template> templatesWithoutFileCache = new HashMap<String, Template>();
 
-    /**
-     * All loaded templates is cached in the templates-list using a key.
-     * This key is included as part of the classname for the generated class for a specific template.
-     * The key is included in the classname to make it possible to resolve the original template-file
-     * from the classname, when creating cleanStackTrace
-     *
-     * This method returns a unique representation of the path which is usable as part of a classname
-     *
-     * @param path
-     * @return
-     */
-    public static String getUniqueNumberForTemplateFile(String path) {
-        //a path cannot be a valid classname so we have to convert it somehow.
-        //If we did some encoding on the path, the result would be at least as long as the path.
-        //Therefor we assign a unique number to each path the first time we see it, and store it..
-        //This way, all seen paths gets a unique number. This number is our UniqueValidClassnamePart..
-
-        String uniqueNumber = templateFile2UniqueNumber.get(path);
-        if (uniqueNumber == null) {
-            //this is the first time we see this path - must assign a unique number to it.
-            uniqueNumber = Long.toString(nextUniqueNumber.getAndIncrement());
-            templateFile2UniqueNumber.put(path, uniqueNumber);
-        }
-        return uniqueNumber;
+    public static void init() {
+        // set up folder where we dump generated src
+        GTFileResolver.impl = new GTFileResolver1xImpl(Play.templatesPath);
+        GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");
+        templateRepo = new GTTemplateRepo( Play.classloader,  Play.mode == Play.Mode.DEV, new PreCompilerFactory());
+        templatesWithoutFileCache.clear();
     }
 
     /**
@@ -63,34 +51,28 @@ public class TemplateLoader {
         }
 
         // Use default engine
-        final String key = getUniqueNumberForTemplateFile(file.relativePath());
-        if (!templates.containsKey(key) || templates.get(key).compiledTemplate == null) {
-            if (Play.usePrecompiled) {
-                BaseTemplate template = new GroovyTemplate(file.relativePath().replaceAll("\\{(.*)\\}", "from_$1").replace(":", "_").replace("..", "parent"), file.contentAsString());
-                try {
-                    template.loadPrecompiled();
-                    templates.put(key, template);
-                    return template;
-                } catch(Exception e) {
-                    Logger.warn("Precompiled template %s not found, trying to load it dynamically...", file.relativePath());
-                }
-            }
-            BaseTemplate template = new GroovyTemplate(file.relativePath(), file.contentAsString());
-            if (template.loadFromCache()) {
-                templates.put(key, template);
-            } else {
-                templates.put(key, new GroovyTemplateCompiler().compile(file));
-            }
-        } else {
-            BaseTemplate template = templates.get(key);
-            if (Play.mode == Play.Mode.DEV && template.timestamp < file.lastModified()) {
-                templates.put(key, new GroovyTemplateCompiler().compile(file));
-            }
+
+        GTTemplateLocationReal templateLocation = new GTTemplateLocationReal(file.relativePath(), file.getRealFile());
+
+        // get it to check and compile it
+        getGTTemplateInstance(templateLocation);
+
+        return new GTTemplate(templateLocation);
+
+    }
+
+    protected static GTJavaBase getGTTemplateInstance( GTTemplateLocationReal templateLocation) {
+        try {
+            return templateRepo.getTemplateInstance( templateLocation );
+        } catch ( GTTemplateNotFound e) {
+            throw new TemplateNotFoundException(e.queryPath);
+        } catch (GTCompilationExceptionWithSourceInfo e) {
+            GTTemplate t = new GTTemplate(e.templateLocation);
+            t.loadSource();
+            throw new TemplateCompilationException( t, e.oneBasedLineNo, e.specialMessage);
+        } catch (GTCompilationException e) {
+            throw new RuntimeException(e.getMessage(), e);
         }
-        if (templates.get(key) == null) {
-            throw new TemplateNotFoundException(file.relativePath());
-        }
-        return templates.get(key);
     }
 
     /**
@@ -99,24 +81,12 @@ public class TemplateLoader {
      * @param source The template source
      * @return A Template
      */
-    public static BaseTemplate load(String key, String source) {
-        if (!templates.containsKey(key) || templates.get(key).compiledTemplate == null) {
-            BaseTemplate template = new GroovyTemplate(key, source);
-            if (template.loadFromCache()) {
-                templates.put(key, template);
-            } else {
-                templates.put(key, new GroovyTemplateCompiler().compile(template));
-            }
-        } else {
-            BaseTemplate template = new GroovyTemplate(key, source);
-            if (Play.mode == Play.Mode.DEV) {
-                templates.put(key, new GroovyTemplateCompiler().compile(template));
-            }
-        }
-        if (templates.get(key) == null) {
-            throw new TemplateNotFoundException(key);
-        }
-        return templates.get(key);
+    public static Template load(String key, String source) {
+        // should not use TemplateRepo directly but compiler and own cache/map
+        // Need a special GTTemlateLocation with embedded source.
+        // Must modify precompiler to know that it is not file based and compile inn the source using
+        // new GTTemlateLocation with embeddd source in constructor
+        throw new RuntimeException("Not implemented yet");
     }
 
     /**
@@ -126,9 +96,8 @@ public class TemplateLoader {
      * @param source The template source
      * @return A Template
      */
-    public static BaseTemplate load(String key, String source, boolean reload) {
-        cleanCompiledCache(key);
-        return load(key, source);
+    public static Template load(String key, String source, boolean reload) {
+        throw new RuntimeException("Not implemented yet");
     }
 
     /**
@@ -136,16 +105,16 @@ public class TemplateLoader {
      * @param source The template source
      * @return A Template
      */
-    public static BaseTemplate loadString(String source) {
-        BaseTemplate template = new GroovyTemplate(source);
-        return new GroovyTemplateCompiler().compile(template);
+    public static Template loadString(String source) {
+        // should not use TemplateRepo directly but compiler
+        throw new RuntimeException("Not implemented yet");
     }
 
     /**
      * Cleans the cache for all templates
      */
     public static void cleanCompiledCache() {
-        templates.clear();
+        init();
     }
 
     /**
@@ -153,7 +122,8 @@ public class TemplateLoader {
      * @param key The template key
      */
     public static void cleanCompiledCache(String key) {
-        templates.remove(key);
+        // should only clean cached templates without source
+        throw new RuntimeException("Not implemented yet");
     }
 
     /**
@@ -173,16 +143,7 @@ public class TemplateLoader {
                 break;
             }
         }
-        /*
-        if (template == null) {
-        //When using the old 'key = (file.relativePath().hashCode() + "").replace("-", "M");',
-        //the next line never return anything, since all values written to templates is using the
-        //above key.
-        //when using just file.relativePath() as key, the next line start returning stuff..
-        //therefor I have commented it out.
-        template = templates.get(path);
-        }
-         */
+
         //TODO: remove ?
         if (template == null) {
             VirtualFile tf = Play.getVirtualFile(path);
@@ -208,9 +169,6 @@ public class TemplateLoader {
             VirtualFile vf = root.child("conf/routes");
             if (vf != null && vf.exists()) {
                 Template template = load(vf);
-                if (template != null) {
-                    template.compile();
-                }
             }
         }
         return res;
@@ -220,18 +178,10 @@ public class TemplateLoader {
         if (!current.isDirectory() && !current.getName().startsWith(".") && !current.getName().endsWith(".scala.html")) {
             long start = System.currentTimeMillis();
             Template template = load(current);
-            if (template != null) {
-                try {
-                    template.compile();
-                    if (Logger.isTraceEnabled()) {
-                        Logger.trace("%sms to load %s", System.currentTimeMillis() - start, current.getName());
-                    }
-                } catch (TemplateCompilationException e) {
-                    Logger.error("Template %s does not compile at line %d", e.getTemplate().name, e.getLineNumber());
-                    throw e;
-                }
-                templates.add(template);
+            if (Logger.isTraceEnabled()) {
+                Logger.trace("%sms to load %s", System.currentTimeMillis() - start, current.getName());
             }
+            templates.add(template);
         } else if (current.isDirectory() && !current.getName().startsWith(".")) {
             for (VirtualFile virtualFile : current.list()) {
                 scan(templates, virtualFile);

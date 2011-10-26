@@ -1,23 +1,15 @@
 package play.template2.compile;
 
 import play.template2.GTFastTagResolver;
-import play.template2.GTFileResolver;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
 import play.template2.GTTemplateLocation;
+import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
 import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.legacy.GTLegacyFastTagResolver;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,6 +22,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GTPreCompiler {
+
+    public static final int maxPlainTextLength = 60000;
 
     public static String generatedPackageName = "play.template2.generated_templates";
 
@@ -177,49 +171,8 @@ public class GTPreCompiler {
         this.templateRepo = templateRepo;
     }
 
-    /**
-     * Read file content to a String (always use utf-8)
-     * @param file The file to read
-     * @return The String content
-     */
-    private String readContentAsString(File file) {
-        return readContentAsString(file, "utf-8");
-    }
-
-    /**
-     * Read file content to a String
-     * @param file The file to read
-     * @return The String content
-     */
-    private String readContentAsString(File file, String encoding) {
-        InputStream is = null;
-        try {
-            is = new FileInputStream(file);
-            StringWriter result = new StringWriter();
-            PrintWriter out = new PrintWriter(result);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is, encoding));
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                out.println(line);
-            }
-            return result.toString();
-        } catch(IOException e) {
-            throw new GTCompilationException("Error reading the file " + file, e);
-        } finally {
-            if(is != null) {
-                try {
-                    is.close();
-                } catch(Exception e) {
-                    //
-                }
-            }
-        }
-    }
-
-
-    public Output compile(final GTTemplateLocation templateLocation) {
-        File file = GTFileResolver.impl.getRealFile( templateLocation.relativePath );
-        final String src = readContentAsString( file );
+    public Output compile(final GTTemplateLocationReal templateLocation) {
+        final String src = templateLocation.readSource();
         return compile(src, templateLocation);
     }
 
@@ -281,7 +234,7 @@ public class GTPreCompiler {
 
         // add constructor which initializes the templateClassNameGroovy-instance
         sc.jprintln(" public " + templateClassName + "() {");
-        sc.jprintln("  super(" + templateClassNameGroovy + ".class, new play.template2.GTTemplateLocation(\"" + templateLocation.queryPath + "\", \"" + templateLocation.relativePath + "\"), "+sc.pimpInfo.alwaysOn+");");
+        sc.jprintln("  super(" + templateClassNameGroovy + ".class, new play.template2.GTTemplateLocation(\"" + templateLocation.relativePath + "\"), "+sc.pimpInfo.alwaysOn+");");
         sc.jprintln(" }");
 
         rootFragments.add( new GTFragmentCode(1,"  this.g = ("+templateClassNameGroovy+")groovyScript;\n"));
@@ -535,11 +488,11 @@ public class GTPreCompiler {
         }
 
         if (insideComment) {
-            throw new GTCompilationException("Found unclosed comment starting on line " + commentStartLine);
+            throw new GTCompilationExceptionWithSourceInfo("Found open comment", sc.templateLocation, commentStartLine+1);
         }
 
         if (insideScript) {
-            throw new GTCompilationException("Found unclosed groovy script starting on line " + scriptStartLine);
+            throw new GTCompilationExceptionWithSourceInfo("Found open script-block", sc.templateLocation, scriptStartLine+1);
         }
 
 

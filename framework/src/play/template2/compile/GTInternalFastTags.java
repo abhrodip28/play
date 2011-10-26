@@ -3,7 +3,9 @@ package play.template2.compile;
 import play.mvc.Http;
 import play.template2.GTContentRenderer;
 import play.template2.GTFastTagResolver;
+import play.template2.GTFileResolver;
 import play.template2.GTJavaBase;
+import play.template2.GTTemplateLocationReal;
 import play.template2.exceptions.GTTemplateRuntimeException;
 
 import java.io.ByteArrayOutputStream;
@@ -130,21 +132,62 @@ public class GTInternalFastTags implements GTFastTagResolver {
             throw new GTTemplateRuntimeException("Specify a template name");
         }
         String name = args.get("arg").toString();
+        GTTemplateLocationReal templateLocation;
         if (name.startsWith("./")) {
-            String ct = template.templateLocation.queryPath;
+            String ct = template.templateLocation.relativePath;
             if (ct.matches("^/lib/[^/]+/app/views/.*")) {
                 ct = ct.substring(ct.indexOf("/", 5));
             }
             ct = ct.substring(0, ct.lastIndexOf("/"));
             name = ct + name.substring(1);
+            templateLocation = GTFileResolver.impl.getTemplateLocationFromRelativePath(name);
+        } else {
+            templateLocation = GTFileResolver.impl.getTemplateLocationReal(name);
         }
 
-        GTJavaBase newTemplate = template.templateRepo.getTemplateInstance( name);
+
+        if ( templateLocation == null) {
+            throw new GTTemplateRuntimeException("Cannot find template");
+        }
+
+        GTJavaBase newTemplate = template.templateRepo.getTemplateInstance( templateLocation );
+        Map<String, Object> newArgs = new HashMap<String, Object>();
+        newArgs.putAll(template.binding.getVariables());
+        newArgs.put("_isInclude", true);
+
+        newTemplate.internalRenderTemplate(newArgs, false);
+        template.insertOutput( newTemplate );
+    }
+
+    public static void tag_render(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
+        if (!args.containsKey("arg") || args.get("arg") == null) {
+            throw new GTTemplateRuntimeException("Specify a template name");
+        }
+        String name = args.get("arg").toString();
+        GTTemplateLocationReal templateLocation;
+        if (name.startsWith("./")) {
+            String ct = template.templateLocation.relativePath;
+            if (ct.matches("^/lib/[^/]+/app/views/.*")) {
+                ct = ct.substring(ct.indexOf("/", 5));
+            }
+            ct = ct.substring(0, ct.lastIndexOf("/"));
+            name = ct + name.substring(1);
+            templateLocation = GTFileResolver.impl.getTemplateLocationFromRelativePath(name);
+        } else {
+            templateLocation = GTFileResolver.impl.getTemplateLocationReal(name);
+        }
+
+
+        if ( templateLocation == null) {
+            throw new GTTemplateRuntimeException("Cannot find template");
+        }
+
+        GTJavaBase newTemplate = template.templateRepo.getTemplateInstance( templateLocation );
         Map<String, Object> newArgs = new HashMap<String, Object>();
         newArgs.putAll(args);
         newArgs.put("_isInclude", true);
 
-        newTemplate.renderTemplate(newArgs);
+        newTemplate.internalRenderTemplate(newArgs, false);
         template.insertOutput( newTemplate );
     }
 

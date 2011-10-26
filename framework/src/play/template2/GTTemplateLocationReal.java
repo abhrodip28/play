@@ -6,8 +6,13 @@ public class GTTemplateLocationReal extends GTTemplateLocation {
 
     public final File realFile;
 
-    public GTTemplateLocationReal(String queryPath, String relativePath, File realFile) {
-        super(queryPath, relativePath);
+    public GTTemplateLocationReal(String relativePath, File realFile) {
+        super(relativePath);
         this.realFile = realFile;
+    }
+
+    @Override
+    public String readSource() {
+        return IO.readContentAsString(realFile);
     }
 }

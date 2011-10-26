@@ -8,6 +8,8 @@ import play.template2.GTContentRenderer;
 import play.template2.GTJavaBase;
 import play.template2.GTRenderingResult;
 
+import java.io.UnsupportedEncodingException;
+
 public class GTContentRendererFakeClosure extends Closure {
 
     public final GTContentRenderer contentRenderer;
@@ -23,7 +25,17 @@ public class GTContentRendererFakeClosure extends Closure {
         GTRenderingResult res = contentRenderer.render();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         res.writeOutput(out, "utf-8");
-        return out.toString();
+        try {
+            return new String(out.toByteArray(), "utf-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        String s = renderToString();
+        return s;
     }
 
     @Override
@@ -39,16 +51,6 @@ public class GTContentRendererFakeClosure extends Closure {
 
     @Override
     public void setResolveStrategy(int resolveStrategy) {
-        throw new RuntimeException("Not implemented");
-    }
-
-    @Override
-    public int getResolveStrategy() {
-        throw new RuntimeException("Not implemented");
-    }
-
-    @Override
-    public Object getThisObject() {
         throw new RuntimeException("Not implemented");
     }
 
@@ -74,16 +76,6 @@ public class GTContentRendererFakeClosure extends Closure {
 
     @Override
     public Object call(Object arguments) {
-        throw new RuntimeException("Not implemented");
-    }
-
-    @Override
-    public Object getOwner() {
-        throw new RuntimeException("Not implemented");
-    }
-
-    @Override
-    public Object getDelegate() {
         throw new RuntimeException("Not implemented");
     }
 
@@ -133,22 +125,12 @@ public class GTContentRendererFakeClosure extends Closure {
     }
 
     @Override
-    public int getDirective() {
-        throw new RuntimeException("Not implemented");
-    }
-
-    @Override
     public void setDirective(int directive) {
         throw new RuntimeException("Not implemented");
     }
 
     @Override
     public Object invokeMethod(String name, Object args) {
-        throw new RuntimeException("Not implemented");
-    }
-
-    @Override
-    public MetaClass getMetaClass() {
         throw new RuntimeException("Not implemented");
     }
 
