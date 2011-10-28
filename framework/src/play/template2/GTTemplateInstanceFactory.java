@@ -51,11 +51,13 @@ public class GTTemplateInstanceFactory {
         }
     }
 
-    public GTJavaBase create() {
+    public GTJavaBase create(GTTemplateRepo templateRepo) {
         GTJavaBase templateInstance;
         try {
             templateInstance = (GTJavaBase)templateClass.newInstance();
             templateInstance.compiledTemplate = compiledTemplate;
+            // Must tell the template Instance where the current templateRepo is - needed when processing #{extends} and custom tags
+            templateInstance.templateRepo = templateRepo;
             return templateInstance;
         } catch (Exception e) {
             throw new GTException("Error creating template instance", e);

@@ -123,7 +123,7 @@ public class GTTemplateRepo {
 
                     try {
                         // compile it
-                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory).compile( templateLocation);
+                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory, true).compile( templateLocation);
 
                         GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
 
@@ -153,9 +153,8 @@ public class GTTemplateRepo {
         }
 
         // already compile and unchanged - lets return the template instance
-        GTJavaBase templateInstance = ti.templateInstanceFactory.create();
-        // Must tell the template Instance that "we" are the repo - needed when processing #{extends} and custom tags
-        templateInstance.templateRepo = this;
+        GTJavaBase templateInstance = ti.templateInstanceFactory.create(this);
+
         return templateInstance;
     }
 

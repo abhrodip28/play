@@ -50,13 +50,22 @@ public class ApplicationClasses {
         }
         return classes.get(name);
     }
-
     /**
      * Retrieve all application classes assignable to this class.
      * @param clazz The superclass, or the interface.
      * @return A list of application classes.
      */
     public List<ApplicationClass> getAssignableClasses(Class<?> clazz) {
+        return getAssignableClasses(clazz, false);
+    }
+
+    /**
+     * Retrieve all application classes assignable to this class.
+     * @param clazz The superclass, or the interface.
+     * @param ignoreErrors true to ignore errros when checking classes
+     * @return A list of application classes.
+     */
+    public List<ApplicationClass> getAssignableClasses(Class<?> clazz, boolean ignoreErrors) {
         List<ApplicationClass> results = new ArrayList<ApplicationClass>();
         if (clazz != null) {
             for (ApplicationClass applicationClass : new ArrayList<ApplicationClass>(classes.values())) {
@@ -65,14 +74,18 @@ public class ApplicationClasses {
                 }
                 try {
                     Play.classloader.loadClass(applicationClass.name);
-                } catch (ClassNotFoundException ex) {
-                    throw new UnexpectedException(ex);
-                }
-                try {
-                    if (clazz.isAssignableFrom(applicationClass.javaClass) && !applicationClass.javaClass.getName().equals(clazz.getName())) {
-                        results.add(applicationClass);
+                    try {
+                        if (clazz.isAssignableFrom(applicationClass.javaClass) && !applicationClass.javaClass.getName().equals(clazz.getName())) {
+                            results.add(applicationClass);
+                        }
+                    } catch (Exception e) {
+                        // nop
                     }
-                } catch (Exception e) {
+
+                } catch (Exception ex) {
+                    if (!ignoreErrors) {
+                        throw new UnexpectedException(ex);
+                    }
                 }
             }
         }

@@ -46,7 +46,7 @@ public class GTLegacyFastTagResolver1X implements GTLegacyFastTagResolver {
                 _lastKnownApplicationClassloaderState = Play.classloader.currentState;
 
                 // find all FastTag-classes
-                List<ApplicationClasses.ApplicationClass> _fastTagClasses = Play.classes.getAssignableClasses( FastTags.class );
+                List<ApplicationClasses.ApplicationClass> _fastTagClasses = Play.classes.getAssignableClasses( FastTags.class, true );
 
                 List<Class> classes = new ArrayList<Class>(_fastTagClasses.size()+1);
                 classes.add( FastTags.class);

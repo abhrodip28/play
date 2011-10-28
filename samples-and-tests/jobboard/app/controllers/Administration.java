@@ -39,6 +39,7 @@ public class Administration extends CRUD {
             index();
         }
         Company company = Company.find("byEmailAndPassword", email, password).first();
+        System.out.println(email + " " + password);
         if (company != null) {
             session.put("company", company.email);
             session.put("company-name", company.name);

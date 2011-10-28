@@ -24,11 +24,13 @@ public class GTCompiler {
     private final ClassLoader parentClassloader;
     private final GTTemplateRepo templateRepo;
     private final GTPreCompilerFactory preCompilerFactory;
+    private final boolean storeSourceToDisk;
 
-    public GTCompiler(ClassLoader parentClassloader, GTTemplateRepo templateRepo, GTPreCompilerFactory preCompilerFactory) {
+    public GTCompiler(ClassLoader parentClassloader, GTTemplateRepo templateRepo, GTPreCompilerFactory preCompilerFactory, boolean storeSourceToDisk) {
         this.parentClassloader = parentClassloader;
         this.templateRepo = templateRepo;
         this.preCompilerFactory = preCompilerFactory;
+        this.storeSourceToDisk = storeSourceToDisk;
     }
 
     public static class CL extends ClassLoader {
@@ -152,7 +154,7 @@ public class GTCompiler {
         //System.out.println("java: \n"+precompiled.javaCode);
         //System.out.println("groovy: \n"+precompiled.groovyCode);
 
-        if ( srcDestFolder != null) {
+        if ( srcDestFolder != null && storeSourceToDisk) {
             // store the generated src to disk
             File folder = new File( srcDestFolder, GTPreCompiler.generatedPackageName.replace('.','/'));
             if (!folder.exists()) {

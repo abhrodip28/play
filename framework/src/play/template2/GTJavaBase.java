@@ -145,7 +145,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
                 extendedTemplate.extendingTemplate = this;
 
                 // ok, render it with original args..
-                extendedTemplate.internalRenderTemplate( orgArgs, true );
+                extendedTemplate.internalRenderTemplate( orgArgs, false );
             }
 
         } catch( GTTemplateNotFoundWithSourceInfo e) {

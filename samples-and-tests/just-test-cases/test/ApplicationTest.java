@@ -31,6 +31,18 @@ public class ApplicationTest extends FunctionalTest {
         Response response = GET("/application/fastTag_render_test");
         assertContentEquals("OuterInnerRenderPart", response);
     }
+    
+    @Test
+    public void testRenderAndCompileTemplateFromStringSource() {
+        Response response = GET("/application/renderAndCompileTemplateFromStringSource");
+        assertContentEquals("\n"+
+        "Source1\n"+
+        "123\n"+
+        "FromTag: x:"+
+        "myDatamyDataQmyDataQ", response);
+    }
+    
+    
 
 }
 

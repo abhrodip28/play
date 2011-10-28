@@ -864,7 +864,7 @@ public class GTPreCompiler {
 
                 int lineNo = s.startLine;
                 //gout.append(sc.pimpStart+"");
-                for ( String line : s.scriptSource.split("\n")) {
+                for ( String line : s.scriptSource.split("\n",-1)) {
                     sc.gprintln(line, lineNo++);
                 }
 

@@ -4,8 +4,12 @@ import play.Logger;
 import play.Play;
 import play.exceptions.TemplateCompilationException;
 import play.exceptions.TemplateNotFoundException;
+import play.libs.Codec;
+import play.libs.Crypto;
 import play.template2.GTFileResolver;
 import play.template2.GTJavaBase;
+import play.template2.GTTemplateInstanceFactory;
+import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
 import play.template2.compile.GTCompiler;
@@ -14,6 +18,8 @@ import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.exceptions.GTTemplateNotFound;
 import play.templates.gt_integration.GTFileResolver1xImpl;
 import play.templates.gt_integration.PreCompilerFactory;
+import play.utils.HTML;
+import play.utils.Utils;
 import play.vfs.VirtualFile;
 
 import java.io.File;
@@ -82,11 +88,16 @@ public class TemplateLoader {
      * @return A Template
      */
     public static Template load(String key, String source) {
-        // should not use TemplateRepo directly but compiler and own cache/map
-        // Need a special GTTemlateLocation with embedded source.
-        // Must modify precompiler to know that it is not file based and compile inn the source using
-        // new GTTemlateLocation with embeddd source in constructor
-        throw new RuntimeException("Not implemented yet");
+
+        Template template = templatesWithoutFileCache.get(key);
+        if ( template != null) {
+            return template;
+        }
+
+        template = generateTemplateFromEmbededSource(key, source);
+
+        templatesWithoutFileCache.put(key, template);
+        return template;
     }
 
     /**
@@ -97,7 +108,41 @@ public class TemplateLoader {
      * @return A Template
      */
     public static Template load(String key, String source, boolean reload) {
-        throw new RuntimeException("Not implemented yet");
+        // reload is also ignored in the old template implementation...
+        templatesWithoutFileCache.remove(key);
+        return load( key, source);
+    }
+
+
+    private static class GTTemplateLocationWithEmbeddedSource extends GTTemplateLocationReal {
+
+        private final String key;
+        private final String source;
+
+        private GTTemplateLocationWithEmbeddedSource(String key, String source) {
+            super("embedded_source_"+ Codec.encodeBASE64(key), null);
+            this.key = key;
+            this.source = source;
+        }
+
+        @Override
+        public String readSource() {
+            return this.source;
+        }
+    }
+
+    private static class GTTemplateWithEmbeddedSource extends GTTemplate {
+        private final GTTemplateInstanceFactory templateInstanceFactory;
+
+        private GTTemplateWithEmbeddedSource(String name, GTTemplateInstanceFactory templateInstanceFactory) {
+            super(name);
+            this.templateInstanceFactory = templateInstanceFactory;
+        }
+
+        @Override
+        protected GTJavaBase getGTTemplateInstance() {
+            return templateInstanceFactory.create(templateRepo);
+        }
     }
 
     /**
@@ -105,9 +150,17 @@ public class TemplateLoader {
      * @param source The template source
      * @return A Template
      */
-    public static Template loadString(String source) {
-        // should not use TemplateRepo directly but compiler
-        throw new RuntimeException("Not implemented yet");
+    public static Template loadString(final String source) {
+
+        final String key = Codec.UUID();
+        return generateTemplateFromEmbededSource(key, source);
+    }
+
+    private static Template generateTemplateFromEmbededSource(String key, String source) {
+        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(Play.classloader, templateRepo, new PreCompilerFactory(), false).compile(new GTTemplateLocationWithEmbeddedSource(key, source));
+        GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(Play.classloader, compiledTemplate);
+
+        return new GTTemplateWithEmbeddedSource(key, templateInstanceFactory);
     }
 
     /**

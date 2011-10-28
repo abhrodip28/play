@@ -18,6 +18,7 @@ import play.jobs.*;
 import models.*;
 import utils.*;
 import jobs.*;
+import play.templates.TemplateLoader;
 
 import javax.mail.internet.InternetAddress;
 
@@ -291,6 +292,24 @@ public class Application extends Controller {
     
     public static void fastTag_render_test() {
         render();
+    }
+    
+    public static void renderAndCompileTemplateFromStringSource() {
+        StringBuilder output = new StringBuilder();
+        
+        Map<String, Object> args = new HashMap<String, Object>();
+        args.put("myList", new Integer[]{1,2,3});
+        args.put("data", "myData");
+        
+        String src = "\nSource1\n#{list myList, as: 'i'}${i}#{/list}\n#{minimalTag 'x:'/}";
+        
+        output.append(TemplateLoader.loadString(src).render(args));
+        
+        output.append(TemplateLoader.load("key", "${data}", true).render(args));
+        output.append(TemplateLoader.load("key", "Q${data}Q").render(args));
+        output.append(TemplateLoader.load("key", "Q${data}Q", true).render(args));
+        
+        renderText(output.toString());
     }
 
 }

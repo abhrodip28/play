@@ -18,6 +18,7 @@ import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 public class GTTemplate extends Template{
 
@@ -26,6 +27,11 @@ public class GTTemplate extends Template{
     public GTTemplate(GTTemplateLocation templateLocation) {
         this.templateLocation = templateLocation;
         this.name = templateLocation.relativePath;
+    }
+
+    public GTTemplate(String name) {
+        this.templateLocation = null;
+        this.name = name;
     }
 
     @Override
@@ -57,11 +63,15 @@ public class GTTemplate extends Template{
         }
     }
 
-    public GTRenderingResult renderGTTemplate(Map<String, Object> args) {
+    protected GTJavaBase getGTTemplateInstance() {
+        return TemplateLoader.getGTTemplateInstance((GTTemplateLocationReal)templateLocation);
+    }
+
+    protected GTRenderingResult renderGTTemplate(Map<String, Object> args) {
 
         try {
 
-            GTJavaBase gtTemplate = TemplateLoader.getGTTemplateInstance((GTTemplateLocationReal)templateLocation);
+            GTJavaBase gtTemplate = getGTTemplateInstance();
             gtTemplate.renderTemplate(args);
             return gtTemplate;
 
@@ -80,7 +90,6 @@ public class GTTemplate extends Template{
         }
 
     }
-
 
     @Override
     public String render(Map<String, Object> args) {
