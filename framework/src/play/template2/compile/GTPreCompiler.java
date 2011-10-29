@@ -39,7 +39,7 @@ public class GTPreCompiler {
     private final GTTemplateRepo templateRepo;
 
     public static class PimpInfo {
-        public boolean alwaysOn = false;
+        public boolean needPimping = false;
         public String pimpStart;
         public String pimpEnd;
         private Pattern pimpPattern;
@@ -81,7 +81,8 @@ public class GTPreCompiler {
 
 
         public void checkNeedPimping(String srcFragment) {
-            if ( alwaysOn) {
+            if (needPimping) {
+                // we have already found code using pimping - No need to check anymore.
                 return ;
             }
 
@@ -94,17 +95,13 @@ public class GTPreCompiler {
             boolean newResult = pimpPattern.matcher(srcFragment).find();
 
             if ( newResult ) {
-                // force us to go back and re-precompile with pimping
-                throw new NeedPimpingException();
+                // we've found a groovy code fragment using pimping - must turn it on..
+                needPimping = true;
             }
 
             alreadyPimpCheckedSrc.put(srcFragment, newResult);
         }
 
-    }
-
-    private static class NeedPimpingException extends RuntimeException {
-        
     }
 
     public static class SourceContext {
@@ -184,13 +181,7 @@ public class GTPreCompiler {
         PimpInfo pimpInfo = new PimpInfo();
         pimpInfo.generate( getJavaExtensionClasses());
 
-        try {
-            return internalCompile(lines, templateLocation, pimpInfo);
-        } catch ( NeedPimpingException e) {
-            // we found out that we need pimping. must re-run the precompile with pimping on
-            pimpInfo.alwaysOn = true;
-            return internalCompile(lines, templateLocation, pimpInfo);
-        }
+        return internalCompile(lines, templateLocation, pimpInfo);
     }
 
 
@@ -213,15 +204,6 @@ public class GTPreCompiler {
         sc.gprintln("package " + generatedPackageName + ";");
         sc.gprintln("class " + templateClassNameGroovy + " extends " + getGroovyBaseClass().getName() + " {");
 
-
-        if ( sc.pimpInfo.alwaysOn) {
-            sc.gprintln(" public Object run(){");
-            sc.gprintln(sc.pimpInfo.pimpStart + "");
-            sc.gprintln(" java_class._renderTemplate();");
-            sc.gprintln(sc.pimpInfo.pimpEnd + "");
-            sc.gprintln(" }");
-        }
-
         // generate java class
         sc.jprintln("package " + generatedPackageName + ";");
 
@@ -232,10 +214,7 @@ public class GTPreCompiler {
 
         sc.jprintln(" private " + templateClassNameGroovy + " g;");
 
-        // add constructor which initializes the templateClassNameGroovy-instance
-        sc.jprintln(" public " + templateClassName + "() {");
-        sc.jprintln("  super(" + templateClassNameGroovy + ".class, new play.template2.GTTemplateLocation(\"" + templateLocation.relativePath + "\"), "+sc.pimpInfo.alwaysOn+");");
-        sc.jprintln(" }");
+        // we write the constructor last since we have to complete the pimp-checking first
 
         rootFragments.add( new GTFragmentCode(1,"  this.g = ("+templateClassNameGroovy+")groovyScript;\n"));
 
@@ -245,10 +224,24 @@ public class GTPreCompiler {
         }
         generateCodeForGTFragments(sc, rootFragments, "_renderTemplate");
 
+        // Now we can add the constructor since we're done checking pimping.
+        // add constructor which initializes the templateClassNameGroovy-instance
+        sc.jprintln(" public " + templateClassName + "() {");
+        sc.jprintln("  super(" + templateClassNameGroovy + ".class, new play.template2.GTTemplateLocation(\"" + templateLocation.relativePath + "\"), "+sc.pimpInfo.needPimping +");");
+        sc.jprintln(" }");
+
+
         // end of java class
         sc.jprintln("}");
 
-        //gout.append(sc.pimpEnd+"");
+        if ( sc.pimpInfo.needPimping) {
+            sc.gprintln(" public Object run(){");
+            sc.gprintln(sc.pimpInfo.pimpStart + "");
+            sc.gprintln(" java_class._renderTemplate();");
+            sc.gprintln(sc.pimpInfo.pimpEnd + "");
+            sc.gprintln(" }");
+        }
+
         // end of groovy class
         sc.gprintln("}");
 

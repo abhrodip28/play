@@ -43,15 +43,7 @@ public class GTTemplate extends Template{
     protected String internalRender(Map<String, Object> args) {
 
 
-        Http.Request currentResponse = Http.Request.current();
-        if ( currentResponse != null) {
-            args.put("_response_encoding", currentResponse.encoding);
-        }
-        args.put("play", new Play());
-        args.put("messages", new Messages());
-        args.put("lang", Lang.get());
-
-        GTRenderingResult renderingResult = renderGTTemplate(args);
+        GTRenderingResult renderingResult = internalGTRender(args);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         renderingResult.writeOutput(out, "utf-8");
@@ -61,6 +53,18 @@ public class GTTemplate extends Template{
         } catch ( UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public GTRenderingResult internalGTRender(Map<String, Object> args) {
+        Http.Request currentResponse = Http.Request.current();
+        if ( currentResponse != null) {
+            args.put("_response_encoding", currentResponse.encoding);
+        }
+        args.put("play", new Play());
+        args.put("messages", new Messages());
+        args.put("lang", Lang.get());
+
+        return renderGTTemplate(args);
     }
 
     protected GTJavaBase getGTTemplateInstance() {
