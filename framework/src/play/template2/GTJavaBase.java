@@ -34,7 +34,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
     protected Map<String, Object> orgArgs = null;
 
     // if this tag uses #{extends}, then the templatePath we extends is stored here.
-    public String extendsTemplatePath = null; // default is not to extend anything...
+    public GTTemplateLocationReal extendsTemplateLocation = null; // default is not to extend anything...
     public GTJavaBase extendedTemplate = null;
     public GTJavaBase extendingTemplate = null; // if someone is extending us, this is the ref to their rendered template - used when dumping their output
 
@@ -131,15 +131,11 @@ public abstract class GTJavaBase extends GTRenderingResult {
                 _renderTemplate();
             }
 
-            // check if "we" have extended an other template..
-            if (extendsTemplatePath != null) {
+            // check if "we" have extended another template..
+            if (extendsTemplateLocation != null) {
                 // yes, we've extended another template
                 // Get the template we are extending
-                GTTemplateLocationReal extendedTemplateLocation = GTFileResolver.impl.getTemplateLocationReal(extendsTemplatePath);
-                if ( extendedTemplateLocation == null ) {
-                    throw new GTTemplateNotFound(extendsTemplatePath);
-                }
-                extendedTemplate = templateRepo.getTemplateInstance( extendedTemplateLocation );
+                extendedTemplate = templateRepo.getTemplateInstance( extendsTemplateLocation );
 
                 // tell it that "we" extended it..
                 extendedTemplate.extendingTemplate = this;
@@ -332,4 +328,28 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
         throw new GTTemplateRuntimeException("Cannot convert object-reference to Iterator");
     }
+
+    /**
+     * If name starts with './', then we look for the template/name in the same folder as this template.
+     * If not, we look for name/path in all template-places.
+     * @param name
+     * @return
+     */
+    public GTTemplateLocationReal resolveTemplateLocation ( String name) {
+        if (name.startsWith("./")) {
+            String ct = this.templateLocation.relativePath;
+            if (ct.matches("^/lib/[^/]+/app/views/.*")) {
+                ct = ct.substring(ct.indexOf("/", 5));
+            }
+            ct = ct.substring(0, ct.lastIndexOf("/"));
+            name = ct + name.substring(1);
+            return GTFileResolver.impl.getTemplateLocationFromRelativePath(name);
+        } else {
+            return GTFileResolver.impl.getTemplateLocationReal(name);
+        }
+
+    }
+
+
+
 }

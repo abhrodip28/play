@@ -829,6 +829,8 @@ public class Controller implements ControllerSupport, LocalVariablesSupport {
             // It's a Result ? (expected)
             if (ex.getTargetException() instanceof Result) {
                 throw (Result) ex.getTargetException();
+            } else if (ex.getTargetException() instanceof PlayException) {
+                throw (PlayException) ex.getTargetException();
             } else {
                 throw new RuntimeException(ex.getTargetException());
             }

@@ -112,11 +112,14 @@ public class GTInternalTagsCompiler {
 
         String templateNameVar = "_tn_"+ (sc.nextMethodIndex++);
         sc.jprintln(" String "+templateNameVar + " = (String)tagArgs.get(\"arg\");", startLine );
+
+        sc.jprintln(" play.template2.GTTemplateLocationReal templateLocation = this.resolveTemplateLocation( "+templateNameVar+" );");
+
         // must check runtime that the template exists
-        sc.jprintln(" if(!this.templateRepo.templateExists("+templateNameVar+")) " +
+        sc.jprintln(" if(templateLocation == null ) " +
                 "{throw new play.template2.exceptions.GTTemplateNotFoundWithSourceInfo("+templateNameVar+", this.templateLocation, "+(startLine+1)+");}");
 
-        sc.jprintln(" this.extendsTemplatePath = "+templateNameVar+";");
+        sc.jprintln(" this.extendsTemplateLocation = templateLocation;");
 
         // that's it..
     }

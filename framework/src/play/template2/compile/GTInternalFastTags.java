@@ -7,6 +7,7 @@ import play.template2.GTFileResolver;
 import play.template2.GTJavaBase;
 import play.template2.GTTemplateLocationReal;
 import play.template2.exceptions.GTTemplateRuntimeException;
+import play.template2.legacy.GTContentRendererFakeClosure;
 
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
@@ -127,24 +128,13 @@ public class GTInternalFastTags implements GTFastTagResolver {
         }
     }
 
+
     public static void tag_include(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
         if (!args.containsKey("arg") || args.get("arg") == null) {
             throw new GTTemplateRuntimeException("Specify a template name");
         }
         String name = args.get("arg").toString();
-        GTTemplateLocationReal templateLocation;
-        if (name.startsWith("./")) {
-            String ct = template.templateLocation.relativePath;
-            if (ct.matches("^/lib/[^/]+/app/views/.*")) {
-                ct = ct.substring(ct.indexOf("/", 5));
-            }
-            ct = ct.substring(0, ct.lastIndexOf("/"));
-            name = ct + name.substring(1);
-            templateLocation = GTFileResolver.impl.getTemplateLocationFromRelativePath(name);
-        } else {
-            templateLocation = GTFileResolver.impl.getTemplateLocationReal(name);
-        }
-
+        GTTemplateLocationReal templateLocation = template.resolveTemplateLocation( name );
 
         if ( templateLocation == null) {
             throw new GTTemplateRuntimeException("Cannot find template");
@@ -164,19 +154,7 @@ public class GTInternalFastTags implements GTFastTagResolver {
             throw new GTTemplateRuntimeException("Specify a template name");
         }
         String name = args.get("arg").toString();
-        GTTemplateLocationReal templateLocation;
-        if (name.startsWith("./")) {
-            String ct = template.templateLocation.relativePath;
-            if (ct.matches("^/lib/[^/]+/app/views/.*")) {
-                ct = ct.substring(ct.indexOf("/", 5));
-            }
-            ct = ct.substring(0, ct.lastIndexOf("/"));
-            name = ct + name.substring(1);
-            templateLocation = GTFileResolver.impl.getTemplateLocationFromRelativePath(name);
-        } else {
-            templateLocation = GTFileResolver.impl.getTemplateLocationReal(name);
-        }
-
+        GTTemplateLocationReal templateLocation = template.resolveTemplateLocation( name );
 
         if ( templateLocation == null) {
             throw new GTTemplateRuntimeException("Cannot find template");
@@ -193,6 +171,14 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
     public static void tag_doBody(GTJavaBase template, Map<String, Object> args, GTContentRenderer _content ) {
 
+        GTContentRenderer body = template.contentRenderer;
+        // have someone modified which body we should render?
+        GTContentRendererFakeClosure bodyClosure = (GTContentRendererFakeClosure)args.get("body");
+        if ( bodyClosure != null) {
+            body = bodyClosure.contentRenderer;
+        }
+
+
         // the content we're supposed to output here is the body-content inside the tag we're now in.
         // we must not output the body of the doBody-tag it self.
         // output this: template.contentRenderer
@@ -208,12 +194,12 @@ public class GTInternalFastTags implements GTFastTagResolver {
         if ( vars != null) {
             for (Map.Entry<String, Object> e : vars.entrySet()) {
                 String key = e.getKey();
-                if ( template.contentRenderer.getRuntimeProperty(key) == null ) {
+                if ( body.getRuntimeProperty(key) == null ) {
                     // this one should reseted after rendering
                     propertiesToResetToNull.add( key);
                 }
                 // set the value
-                template.contentRenderer.setRuntimeProperty(key, e.getValue());
+                body.setRuntimeProperty(key, e.getValue());
             }
         }
 
@@ -222,24 +208,24 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
         if ( as == null ) {
             // render body right now
-            template.insertOutput(template.contentRenderer.render());
+            template.insertOutput(body.render());
         } else {
             // render body to string and store it with the name in as
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            template.contentRenderer.render().writeOutput(out, "utf-8");
+            body.render().writeOutput(out, "utf-8");
             String contentString;
             try {
                 contentString = out.toString("utf-8");
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }
-            template.binding.setProperty(as, contentString);
+            body.setRuntimeProperty(as, contentString);
 
         }
 
         // do we have anything to reset?
         for ( String key : propertiesToResetToNull) {
-            template.contentRenderer.setRuntimeProperty(key, null);
+            body.setRuntimeProperty(key, null);
         }
 
     }

@@ -42,7 +42,7 @@
             <td>
                 #{if fieldsHandler[field]}
                     %{
-                        def handler = fieldsHandler[field];
+                        handler = fieldsHandler[field];
                         handler.setProperty('object', object);
                     }%
                     #{doBody body:handler /}
@@ -51,7 +51,7 @@
                     }%
                 #{/if}
                 #{else}
-                    #{if field_index == 0}
+                    #{if field_index == 1}
                         <a href="@{show(object._key())}">${object[field]?.toString()?.escape()?.raw() ?: '(no value)'}</a>
                     #{/if}
                     #{else}
@@ -71,7 +71,7 @@
         #{else}
             #{if fieldsHandler['default']}
                 %{
-                    def handler = fieldsHandler['default'];
+                    handler = fieldsHandler['default'];
                     handler.setProperty('object', object);
                 }%
                 #{doBody body:handler /}
