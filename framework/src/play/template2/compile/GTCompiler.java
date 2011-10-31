@@ -42,7 +42,7 @@ public class GTCompiler {
             super(parent);
             resourceName = classname.replace(".", "/") + ".class";;
             this.bytes = bytes;
-            Class c = defineClass(classname, bytes, 0, bytes.length);
+            Class c = defineClass(classname, bytes, 0, bytes.length, GTTemplateInstanceFactory.protectionDomain);
             int a = 0;
         }
 

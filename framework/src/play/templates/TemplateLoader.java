@@ -37,6 +37,7 @@ public class TemplateLoader {
     private static Map<String, Template> templatesWithoutFileCache = new HashMap<String, Template>();
 
     public static void init() {
+        GTTemplateInstanceFactory.protectionDomain = Play.classloader.protectionDomain;
         // set up folder where we dump generated src
         GTFileResolver.impl = new GTFileResolver1xImpl(Play.templatesPath);
         GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");

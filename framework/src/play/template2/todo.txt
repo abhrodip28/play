@@ -6,8 +6,5 @@
 * optimize getJavaExtensionClasses
 
 * make "generated-src" configurable and add it as new feature - great for debugging
-* Make templates without src-file work (in TemplateLoader)
-* Remember to NOT render to string and then write it out - write it out directly
 * Precompiling
-* classloader security stuff
 * template render monitor stuff

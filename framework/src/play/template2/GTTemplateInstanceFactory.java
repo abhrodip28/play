@@ -7,6 +7,7 @@ import play.template2.exceptions.GTException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.security.ProtectionDomain;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,6 +17,8 @@ public class GTTemplateInstanceFactory {
     private final CL cl;
     private final Class< ? extends GTJavaBase> templateClass;
 
+    public static ProtectionDomain protectionDomain;
+
     public static class CL extends ClassLoader {
 
         private final Map<String, byte[]> resource2bytes = new HashMap<String, byte[]>();
@@ -24,7 +27,7 @@ public class GTTemplateInstanceFactory {
             super(parent);
 
             for (GTJavaCompileToClass.CompiledClass cp : compiledClasses) {
-                defineClass(cp.classname, cp.bytes, 0, cp.bytes.length);
+                defineClass(cp.classname, cp.bytes, 0, cp.bytes.length, GTTemplateInstanceFactory.protectionDomain);
                 String resourceName = cp.classname.replace(".", "/") + ".class";
                 resource2bytes.put(resourceName, cp.bytes);
             }
