@@ -35,29 +35,7 @@ import java.util.Map;
  */
 public class FastTags {
 
-    public static void _cache(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
-        String key = args.get("arg").toString();
-        String duration = null;
-        if (args.containsKey("for")) {
-            duration = args.get("for").toString();
-        }
-        Object cached = Cache.get(key);
-        if (cached != null) {
-            out.print(cached);
-            return;
-        }
-        String result = JavaExtensions.toString(body);
-        Cache.set(key, result, duration);
-        out.print(result);
-    }
-
-    public static void _verbatim(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
-        out.println(JavaExtensions.toString(body));
-    }
-
-    public static void _jsAction(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
-        out.println("function(options) {var pattern = '" + args.get("arg").toString().replace("&amp;", "&") + "'; for(key in options) { pattern = pattern.replace(':'+key, options[key]); } return pattern }");
-    }
+    // Intentionally not porting fasttags too tied up with the current Play impl
 
     public static void _jsRoute(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
         final Object arg = args.get("arg");
@@ -77,15 +55,6 @@ public class FastTags {
 
     public static void _authenticityToken(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
         out.println("<input type=\"hidden\" name=\"authenticityToken\" value=\"" + Session.current().getAuthenticityToken() + "\">");
-    }
-
-    public static void _option(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
-        Object value = args.get("arg");
-        Object selectedValue = TagContext.parent("select").data.get("selected");
-        boolean selected = selectedValue != null && value != null && (selectedValue.toString()).equals(value.toString());
-        out.print("<option value=\"" + (value == null ? "" : value) + "\" " + (selected ? "selected=\"selected\"" : "") + " " + serialize(args, "selected", "value") + ">");
-        out.println(JavaExtensions.toString(body));
-        out.print("</option>");
     }
 
     /**
@@ -201,36 +170,6 @@ public class FastTags {
             out.print("<a href=\"" + actionDef.url + "\" " + serialize(args, "href") + ">");
             out.print(JavaExtensions.toString(body));
             out.print("</a>");
-        }
-    }
-
-    public static void _ifErrors(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
-        if (Validation.hasErrors()) {
-            body.call();
-            TagContext.parent().data.put("_executeNextElse", false);
-        } else {
-            TagContext.parent().data.put("_executeNextElse", true);
-        }
-    }
-
-    public static void _ifError(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
-        if (args.get("arg") == null) {
-            throw new TemplateExecutionException(template.template, fromLine, "Please specify the error key", new TagInternalException("Please specify the error key"));
-        }
-        if (Validation.hasError(args.get("arg").toString())) {
-            body.call();
-            TagContext.parent().data.put("_executeNextElse", false);
-        } else {
-            TagContext.parent().data.put("_executeNextElse", true);
-        }
-    }
-
-    public static void _errorClass(Map<?, ?> args, Closure body, PrintWriter out, ExecutableTemplate template, int fromLine) {
-        if (args.get("arg") == null) {
-            throw new TemplateExecutionException(template.template, fromLine, "Please specify the error key", new TagInternalException("Please specify the error key"));
-        }
-        if (Validation.hasError(args.get("arg").toString())) {
-            out.print("hasError");
         }
     }
 

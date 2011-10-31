@@ -5,6 +5,8 @@ import play.template2.GTContentRenderer;
 import play.template2.GTFastTagResolver;
 import play.template2.GTFileResolver;
 import play.template2.GTJavaBase;
+import play.template2.GTRenderingResult;
+import play.template2.GTTagContext;
 import play.template2.GTTemplateLocationReal;
 import play.template2.exceptions.GTTemplateRuntimeException;
 import play.template2.legacy.GTContentRendererFakeClosure;
@@ -13,18 +15,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mortenkjetland
- * Date: 10/12/11
- * Time: 11:06 PM
- * To change this template use File | Settings | File Templates.
- */
 public class GTInternalFastTags implements GTFastTagResolver {
 
 
@@ -230,7 +226,72 @@ public class GTInternalFastTags implements GTFastTagResolver {
 
     }
 
-    
+    public static void tag_cache(GTJavaBase template, Map<String, Object> args, GTContentRenderer _content ) {
+        String key = args.get("arg").toString();
+        String duration = null;
+        if (args.containsKey("for")) {
+            duration = args.get("for").toString();
+        }
+        Object cached = template.cacheGet(key);
+        if (cached != null) {
+            template.out.append(cached.toString());
+            return;
+        }
+        GTRenderingResult renderingResult = _content.render();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        renderingResult.writeOutput(out, "utf-8");
+        String result = null;
+        try {
+            result = new String(out.toByteArray(), "utf-8");
+        } catch( UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+        template.cacheSet(key, result, duration);
+        template.out.append(result);
+    }
+
+    public static void tag_verbatim(GTJavaBase template, Map<String, Object> args, GTContentRenderer _content ) {
+        template.insertOutput(_content.render());
+    }
+
+    public static void tag_jsAction(GTJavaBase template, Map<String, Object> args, GTContentRenderer _content ) {
+        template.out.append("function(options) {var pattern = '" + args.get("arg").toString().replace("&amp;", "&") + "'; for(key in options) { pattern = pattern.replace(':'+key, options[key]); } return pattern }");
+    }
+
+    public static void tag_option(GTJavaBase template, Map<String, Object> args, GTContentRenderer _content ) {
+        Object value = args.get("arg");
+        Object selectedValue = GTTagContext.parent("select").data.get("selected");
+        boolean selected = selectedValue != null && value != null && (selectedValue.toString()).equals(value.toString());
+        template.out.append("<option value=\"" + (value == null ? "" : value) + "\" " + (selected ? "selected=\"selected\"" : "") + " " + serialize(args, "selected", "value") + ">");
+        template.insertOutput( _content.render());
+        template.out.append("</option>");
+    }
+
+    public static void tag_errorClass(GTJavaBase template, Map<String, Object> args, GTContentRenderer _content ) {
+        if (args.get("arg") == null) {
+            throw new GTTemplateRuntimeException("Please specify the error key");
+        }
+        if (template.validationHasError(args.get("arg").toString())) {
+            template.out.append("hasError");
+        }
+    }
+
+    public static String serialize(Map<?, ?> args, String... unless) {
+        StringBuilder attrs = new StringBuilder();
+        Arrays.sort(unless);
+        for (Object o : args.keySet()) {
+            String attr = o.toString();
+            String value = args.get(o) == null ? "" : args.get(o).toString();
+            if (Arrays.binarySearch(unless, attr) < 0 && !attr.equals("arg")) {
+                attrs.append(attr);
+                attrs.append("=\"");
+                attrs.append(value);
+                attrs.append("\" ");
+            }
+        }
+        return attrs.toString();
+    }
+
 
 
 }

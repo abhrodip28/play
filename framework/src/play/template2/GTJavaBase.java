@@ -350,6 +350,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     }
 
+    public abstract Object cacheGet(String key);
+    public abstract void cacheSet(String key, Object data, String duration);
 
 
 }

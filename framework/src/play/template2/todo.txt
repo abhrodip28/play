@@ -3,9 +3,6 @@
 * error messages
     * Remove too much text: Execution error occured in template /app/views/Application/jsRouteError.html. Exception raised was GTRuntimeExceptionWithSourceInfo : Error when executing legacy fastTag play.templates.FastTags._jsRoute.
 * integrate with old so that all "is the same"
-* port all fasttags
-    * Remember to remove old impls
-* solve testrunner / _testrunner (and docviewer problem) - relativePath
 * optimize getJavaExtensionClasses
 
 * make "generated-src" configurable and add it as new feature - great for debugging

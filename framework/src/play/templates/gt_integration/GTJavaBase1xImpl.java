@@ -1,6 +1,7 @@
 package play.templates.gt_integration;
 
 import play.Play;
+import play.cache.Cache;
 import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Router;
@@ -70,4 +71,15 @@ public abstract class GTJavaBase1xImpl extends GTJavaBase {
         super.internalRenderTemplate(args, startingNewRendering);
     }
 
+    @Override
+    public Object cacheGet(String key) {
+        return Cache.get(key);
+    }
+
+    @Override
+    public void cacheSet(String key, Object data, String duration) {
+        Cache.set(key, data, duration);
+    }
+
+    
 }
