@@ -268,7 +268,7 @@ public class GTPreCompiler {
         return new Output( generatedPackageName+"."+templateClassName, sc._out.toString(), generatedPackageName+"."+templateClassNameGroovy, sc._gout.toString(), javaLineMapper, groovyLineMapper);
     }
 
-    private String generateTemplateClassname(String relativePath) {
+    public static String generateTemplateClassname(String relativePath) {
         return "GTTemplate_"+relativePath.replaceAll("[\\{\\}/\\\\\\.:-]", "_");
     }
 

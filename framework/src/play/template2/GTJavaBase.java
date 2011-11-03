@@ -46,10 +46,6 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public final GTTemplateLocation templateLocation;
     protected final boolean alwaysPimpingGroovy;
 
-
-    // this gets a value (injected) after the template is new'ed - contains line-mapping info
-    public GTCompiler.CompiledTemplate compiledTemplate;
-
     public static ThreadLocal<Map<Object, Object>> layoutData = new ThreadLocal<Map<Object, Object>>();
 
     public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation, boolean alwaysPimpingGroovy ) {

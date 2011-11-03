@@ -1,7 +1,6 @@
 package play.template2.compile;
 
-import play.template2.GTLineMapper;
-import play.template2.GTTemplateInstanceFactory;
+import play.template2.GTTemplateInstanceFactoryLive;
 import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateRepo;
 
@@ -41,7 +40,7 @@ public class GTCompiler {
             super(parent);
             resourceName = classname.replace(".", "/") + ".class";;
             this.bytes = bytes;
-            Class c = defineClass(classname, bytes, 0, bytes.length, GTTemplateInstanceFactory.protectionDomain);
+            Class c = defineClass(classname, bytes, 0, bytes.length, GTTemplateInstanceFactoryLive.protectionDomain);
             int a = 0;
         }
 
@@ -113,7 +112,7 @@ public class GTCompiler {
         GTJavaCompileToClass.CompiledClass[] groovyClasses = groovyClasses = new GTGroovyCompileToClass(parentClassloader).compileGroovySource( templateLocation, precompiled.groovyLineMapper, precompiled.groovyCode);
 
         // Create Classloader witch includes our groovy class
-        GTTemplateInstanceFactory.CL cl = new GTTemplateInstanceFactory.CL(parentClassloader, groovyClasses);
+        GTTemplateInstanceFactoryLive.CL cl = new GTTemplateInstanceFactoryLive.CL(parentClassloader, groovyClasses);
 
         GTJavaCompileToClass.CompiledClass[] compiledJavaClasses = new GTJavaCompileToClass(cl).compile(precompiled.javaClassName, precompiled.javaCode);
 

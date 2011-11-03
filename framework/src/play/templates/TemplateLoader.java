@@ -5,10 +5,9 @@ import play.Play;
 import play.exceptions.TemplateCompilationException;
 import play.exceptions.TemplateNotFoundException;
 import play.libs.Codec;
-import play.libs.Crypto;
 import play.template2.GTFileResolver;
 import play.template2.GTJavaBase;
-import play.template2.GTTemplateInstanceFactory;
+import play.template2.GTTemplateInstanceFactoryLive;
 import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
@@ -32,11 +31,27 @@ public class TemplateLoader {
     private static GTTemplateRepo templateRepo;
 
     public static void init() {
-        GTTemplateInstanceFactory.protectionDomain = Play.classloader.protectionDomain;
+
+        if ( templateRepo != null && Play.mode == Play.Mode.PROD) {
+            return ;
+        }
+
+        GTTemplateInstanceFactoryLive.protectionDomain = Play.classloader.protectionDomain;
         // set up folder where we dump generated src
         GTFileResolver.impl = new GTFileResolver1xImpl(Play.templatesPath);
         GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");
-        templateRepo = new GTTemplateRepo( Play.classloader,  Play.mode == Play.Mode.DEV, new PreCompilerFactory());
+
+        File folderToDumpClassesIn = null;
+        if ( System.getProperty("precompile")!=null) {
+            folderToDumpClassesIn = new File(Play.applicationPath, "precompiled/java");
+        }
+
+        templateRepo = new GTTemplateRepo(
+                Play.classloader,
+                Play.mode == Play.Mode.DEV,
+                new PreCompilerFactory(),
+                Play.usePrecompiled,
+                folderToDumpClassesIn);
     }
 
     /**
@@ -158,7 +173,7 @@ public class TemplateLoader {
      */
     public static void cleanCompiledCache(String key) {
         // should only clean cached templates without source
-        templateRepo.removeTemplate( new GTTemplateLocation(key));
+        templateRepo.removeTemplate(new GTTemplateLocation(key));
     }
 
     /**
