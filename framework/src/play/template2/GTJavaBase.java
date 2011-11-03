@@ -95,6 +95,16 @@ public abstract class GTJavaBase extends GTRenderingResult {
         // init layout data which should be visible for all templates involved
         layoutData.set( new HashMap<Object, Object>() );
 
+        // clear outputs in case this is a second rendering
+        allOuts.clear();
+        initNewOut();
+
+        // clear extend-stuff
+        extendsTemplateLocation = null;
+        extendedTemplate = null;
+        extendingTemplate = null;
+
+
         internalRenderTemplate(args, true);
     }
     

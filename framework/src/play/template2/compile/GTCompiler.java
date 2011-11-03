@@ -1,6 +1,7 @@
 package play.template2.compile;
 
 import play.template2.GTTemplateInstanceFactory;
+import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
 
@@ -141,7 +142,7 @@ public class GTCompiler {
         }
     }
 
-    public CompiledTemplate compile( GTTemplateLocationReal templateLocation) {
+    public CompiledTemplate compile( GTTemplateLocation templateLocation) {
         // precompile it
         GTPreCompiler.Output precompiled = preCompilerFactory.createCompiler(templateRepo).compile(templateLocation);
 
@@ -151,8 +152,6 @@ public class GTCompiler {
         LineMapper groovyLineMapper = new LineMapper( groovyLines);
 
         // compile the java code
-        //System.out.println("java: \n"+precompiled.javaCode);
-        //System.out.println("groovy: \n"+precompiled.groovyCode);
 
         if ( srcDestFolder != null && storeSourceToDisk) {
             // store the generated src to disk

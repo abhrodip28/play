@@ -3,6 +3,7 @@ package play;
 
 import play.classloading.ApplicationClasses;
 import play.classloading.ApplicationClassloader;
+import play.templates.TemplateLoader;
 import play.vfs.VirtualFile;
 
 import java.io.File;
@@ -36,6 +37,8 @@ public class PlayBuilder {
         Play.applicationPath = new File(".");
         Play.classloader = new ApplicationClassloader();
         Play.plugins = Collections.unmodifiableList( new ArrayList<PlayPlugin>());
+        Play.templatesPath = new ArrayList<VirtualFile>();
+        TemplateLoader.init();
 
     }
 }

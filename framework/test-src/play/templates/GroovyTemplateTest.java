@@ -127,6 +127,30 @@ public class GroovyTemplateTest {
     }
 
     @Test
+    public void verifyRenderingWithKey() {
+
+        new PlayBuilder().build();
+
+        String groovySrc = "hello world: ${name}";
+
+        Template t = TemplateLoader.load("q", groovySrc);
+
+        Map<String, Object> args = new HashMap<String,Object>();
+        args.put("name", "Morten");
+        assertThat( t.render( args ) ).isEqualTo("hello world: Morten");
+
+        //do it again
+        t = TemplateLoader.load("q", groovySrc+"X");
+        assertThat( t.render( args ) ).isEqualTo("hello world: Morten");
+
+        //do it again
+        t = TemplateLoader.load("q", groovySrc+"X", true);
+        assertThat( t.render( args ) ).isEqualTo("hello world: MortenX");
+
+    }
+
+
+    @Test
     public void verifyRenderingTwice() {
 
         new PlayBuilder().build();

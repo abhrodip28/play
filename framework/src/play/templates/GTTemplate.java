@@ -23,15 +23,18 @@ import java.util.concurrent.Callable;
 public class GTTemplate extends Template{
 
     private final GTTemplateLocation templateLocation;
+    private final GTJavaBase gtJavaBase;
 
-    public GTTemplate(GTTemplateLocation templateLocation) {
+    public GTTemplate(GTTemplateLocation templateLocation, GTJavaBase gtJavaBase) {
         this.templateLocation = templateLocation;
+        this.gtJavaBase = gtJavaBase;
         this.name = templateLocation.relativePath;
     }
 
-    public GTTemplate(String name) {
-        this.templateLocation = null;
-        this.name = name;
+    public GTTemplate(GTTemplateLocation templateLocation) {
+        this.templateLocation = templateLocation;
+        this.gtJavaBase = null;
+        this.name = templateLocation.relativePath;
     }
 
     @Override
@@ -68,7 +71,11 @@ public class GTTemplate extends Template{
     }
 
     protected GTJavaBase getGTTemplateInstance() {
-        return TemplateLoader.getGTTemplateInstance((GTTemplateLocationReal)templateLocation);
+        if ( gtJavaBase == null) {
+            return TemplateLoader.getGTTemplateInstance((GTTemplateLocationReal)templateLocation);
+        } else {
+            return gtJavaBase;
+        }
     }
 
     protected GTRenderingResult renderGTTemplate(Map<String, Object> args) {

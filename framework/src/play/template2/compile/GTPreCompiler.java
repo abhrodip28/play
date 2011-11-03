@@ -168,7 +168,7 @@ public class GTPreCompiler {
         this.templateRepo = templateRepo;
     }
 
-    public Output compile(final GTTemplateLocationReal templateLocation) {
+    public Output compile(final GTTemplateLocation templateLocation) {
         final String src = templateLocation.readSource();
         return compile(src, templateLocation);
     }

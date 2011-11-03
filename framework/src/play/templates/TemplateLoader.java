@@ -18,15 +18,11 @@ import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.exceptions.GTTemplateNotFound;
 import play.templates.gt_integration.GTFileResolver1xImpl;
 import play.templates.gt_integration.PreCompilerFactory;
-import play.utils.HTML;
-import play.utils.Utils;
 import play.vfs.VirtualFile;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Load templates
@@ -34,7 +30,6 @@ import java.util.Map;
 public class TemplateLoader {
 
     private static GTTemplateRepo templateRepo;
-    private static Map<String, Template> templatesWithoutFileCache = new HashMap<String, Template>();
 
     public static void init() {
         GTTemplateInstanceFactory.protectionDomain = Play.classloader.protectionDomain;
@@ -42,7 +37,6 @@ public class TemplateLoader {
         GTFileResolver.impl = new GTFileResolver1xImpl(Play.templatesPath);
         GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");
         templateRepo = new GTTemplateRepo( Play.classloader,  Play.mode == Play.Mode.DEV, new PreCompilerFactory());
-        templatesWithoutFileCache.clear();
     }
 
     /**
@@ -62,13 +56,13 @@ public class TemplateLoader {
         GTTemplateLocationReal templateLocation = new GTTemplateLocationReal(file.relativePath(), file.getRealFile());
 
         // get it to check and compile it
-        getGTTemplateInstance(templateLocation);
+        GTJavaBase gtJavaBase = getGTTemplateInstance(templateLocation);
 
-        return new GTTemplate(templateLocation);
+        return new GTTemplate(templateLocation, gtJavaBase);
 
     }
 
-    protected static GTJavaBase getGTTemplateInstance( GTTemplateLocationReal templateLocation) {
+    protected static GTJavaBase getGTTemplateInstance( GTTemplateLocation templateLocation) {
         try {
             return templateRepo.getTemplateInstance( templateLocation );
         } catch ( GTTemplateNotFound e) {
@@ -82,6 +76,20 @@ public class TemplateLoader {
         }
     }
 
+    private static class TemplateLocationWithEmbeddedSource extends GTTemplateLocation {
+        private String source;
+
+        private TemplateLocationWithEmbeddedSource(String relativePath, String source) {
+            super(relativePath);
+            this.source = source;
+        }
+
+        @Override
+        public String readSource() {
+            return source;
+        }
+    }
+
     /**
      * Load a template from a String
      * @param key A unique identifier for the template, used for retreiving a cached template
@@ -90,15 +98,12 @@ public class TemplateLoader {
      */
     public static Template load(String key, String source) {
 
-        Template template = templatesWithoutFileCache.get(key);
-        if ( template != null) {
-            return template;
-        }
+        TemplateLocationWithEmbeddedSource tl = new TemplateLocationWithEmbeddedSource(key, source);
 
-        template = generateTemplateFromEmbededSource(key, source);
+        // get it or compile it
+        GTJavaBase gtJavaBase = getGTTemplateInstance(tl);
 
-        templatesWithoutFileCache.put(key, template);
-        return template;
+        return new GTTemplate(tl, gtJavaBase);
     }
 
     /**
@@ -110,40 +115,16 @@ public class TemplateLoader {
      */
     public static Template load(String key, String source, boolean reload) {
         // reload is also ignored in the old template implementation...
-        templatesWithoutFileCache.remove(key);
-        return load( key, source);
-    }
 
+        TemplateLocationWithEmbeddedSource tl = new TemplateLocationWithEmbeddedSource(key, source);
 
-    private static class GTTemplateLocationWithEmbeddedSource extends GTTemplateLocationReal {
+        // remove it first
+        templateRepo.removeTemplate(tl);
 
-        private final String key;
-        private final String source;
+        // get it or compile it
+        GTJavaBase gtJavaBase = getGTTemplateInstance(tl);
 
-        private GTTemplateLocationWithEmbeddedSource(String key, String source) {
-            super("embedded_source_"+ Codec.encodeBASE64(key), null);
-            this.key = key;
-            this.source = source;
-        }
-
-        @Override
-        public String readSource() {
-            return this.source;
-        }
-    }
-
-    private static class GTTemplateWithEmbeddedSource extends GTTemplate {
-        private final GTTemplateInstanceFactory templateInstanceFactory;
-
-        private GTTemplateWithEmbeddedSource(String name, GTTemplateInstanceFactory templateInstanceFactory) {
-            super(name);
-            this.templateInstanceFactory = templateInstanceFactory;
-        }
-
-        @Override
-        protected GTJavaBase getGTTemplateInstance() {
-            return templateInstanceFactory.create(templateRepo);
-        }
+        return new GTTemplate(tl, gtJavaBase);
     }
 
     /**
@@ -154,14 +135,14 @@ public class TemplateLoader {
     public static Template loadString(final String source) {
 
         final String key = Codec.UUID();
-        return generateTemplateFromEmbededSource(key, source);
-    }
 
-    private static Template generateTemplateFromEmbededSource(String key, String source) {
-        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(Play.classloader, templateRepo, new PreCompilerFactory(), false).compile(new GTTemplateLocationWithEmbeddedSource(key, source));
-        GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(Play.classloader, compiledTemplate);
+        GTTemplateLocation templateLocation = new TemplateLocationWithEmbeddedSource(key, source);
 
-        return new GTTemplateWithEmbeddedSource(key, templateInstanceFactory);
+        GTTemplateRepo.TemplateInfo ti = templateRepo.compileTemplate(templateLocation);
+
+        GTJavaBase gtJavaBase = ti.templateInstanceFactory.create(templateRepo);
+
+        return new GTTemplate(templateLocation, gtJavaBase);
     }
 
     /**
@@ -177,7 +158,7 @@ public class TemplateLoader {
      */
     public static void cleanCompiledCache(String key) {
         // should only clean cached templates without source
-        throw new RuntimeException("Not implemented yet");
+        templateRepo.removeTemplate( new GTTemplateLocation(key));
     }
 
     /**

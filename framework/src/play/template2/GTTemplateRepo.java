@@ -29,25 +29,38 @@ public class GTTemplateRepo {
     private Map<String, TemplateInfo> classname2TemplateInfo = new HashMap<String, TemplateInfo>();
 
 
-    private static class TemplateInfo {
-        public final GTTemplateLocationReal templateLocation;
+    public static class TemplateInfo {
+        public final GTTemplateLocation templateLocation;
         public final long fileSize;
         public final long fileDate;
         public final GTTemplateInstanceFactory templateInstanceFactory;
         public final GTCompiler.CompiledTemplate compiledTemplate;
 
-        private TemplateInfo(GTTemplateLocationReal templateLocation, GTTemplateInstanceFactory templateInstanceFactory, GTCompiler.CompiledTemplate compiledTemplate) {
+        private TemplateInfo(GTTemplateLocation templateLocation, GTTemplateInstanceFactory templateInstanceFactory, GTCompiler.CompiledTemplate compiledTemplate) {
             this.templateLocation = templateLocation;
-            // store fileSize and time so we can detech changes.
-            File file = templateLocation.realFile;
-            fileSize = file.length();
-            fileDate = file.lastModified();
+
+            if ( templateLocation instanceof GTTemplateLocationReal) {
+                GTTemplateLocationReal real = (GTTemplateLocationReal)templateLocation;
+                // store fileSize and time so we can detect changes.
+                File file = real.realFile;
+                fileSize = file.length();
+                fileDate = file.lastModified();
+            } else {
+                fileSize = 0;
+                fileDate = 0;
+            }
             this.templateInstanceFactory = templateInstanceFactory;
             this.compiledTemplate = compiledTemplate;
         }
 
         public boolean isModified() {
-            File freshFile = new File(templateLocation.realFile.getAbsolutePath());
+
+            if ( !(templateLocation instanceof GTTemplateLocationReal) ) {
+                // Cannot check for changes - does not have a file
+                return false;
+            }
+
+            File freshFile = new File(((GTTemplateLocationReal)templateLocation).realFile.getAbsolutePath());
             if (!freshFile.exists() || !freshFile.isFile()) {
                 return true;
             }
@@ -80,6 +93,11 @@ public class GTTemplateRepo {
 
     public boolean templateExists( String relativePath) {
 
+        // first we check the cache
+        if( loadedTemplates.containsKey(relativePath) ) {
+            return true;
+        }
+
         final GTTemplateLocation templateLocation = GTFileResolver.impl.getTemplateLocationReal( relativePath );
         if ( templateLocation == null ) {
             return false;
@@ -97,7 +115,7 @@ public class GTTemplateRepo {
         classname2TemplateInfo.put(ti.compiledTemplate.templateClassName, ti);
     }
 
-    public GTJavaBase getTemplateInstance( final GTTemplateLocationReal templateLocation) throws GTTemplateNotFound {
+    public GTJavaBase getTemplateInstance( final GTTemplateLocation templateLocation) throws GTTemplateNotFound {
 
         // Is this a loaded template ?
         TemplateInfo ti = loadedTemplates.get(templateLocation.relativePath);
@@ -114,48 +132,61 @@ public class GTTemplateRepo {
                     }
                 }
 
-                if (ti == null) {
+                if (ti == null ) {
                     // new or modified - must compile it
 
-                    if ( !templateLocation.realFile.exists() || !templateLocation.realFile.isFile()) {
-                        throw new GTTemplateNotFound( templateLocation.relativePath);
+
+                    if (templateLocation instanceof GTTemplateLocationReal) {
+                        File file = ((GTTemplateLocationReal)templateLocation).realFile;
+
+                        if ( !file.exists() || !file.isFile()) {
+                            throw new GTTemplateNotFound( templateLocation.relativePath);
+                        }
                     }
 
-                    try {
-                        // compile it
-                        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory, true).compile( templateLocation);
-
-                        GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
-
-                        ti = new TemplateInfo(templateLocation, templateInstanceFactory, compiledTemplate);
-                    } catch(GTTemplateNotFound e) {
-                        throw e;
-                    } catch(GTCompilationExceptionWithSourceInfo e) {
-                        throw e;
-                    } catch (Exception e) {
-                        // Must only store it if no error occurs
-                        throw new GTCompilationException(e);
-                    }
+                    ti = compileTemplate(templateLocation);
 
                     // store it
                     addTemplate(templateLocation.relativePath, ti);
 
                 }
             }
-        } else {
-            if ( ti == null) {
-                throw new GTTemplateNotFound(templateLocation.relativePath);
-            }
         }
 
-        if (ti == null) {
-            throw new GTException("Not supposed to happen - no template...");
+        if ( ti == null) {
+            throw new GTTemplateNotFound(templateLocation.relativePath);
         }
 
         // already compile and unchanged - lets return the template instance
         GTJavaBase templateInstance = ti.templateInstanceFactory.create(this);
 
         return templateInstance;
+    }
+
+    public void removeTemplate(GTTemplateLocation templateLocation) {
+        synchronized(loadedTemplates) {
+            loadedTemplates.remove( templateLocation.relativePath);
+        }
+    }
+
+    public TemplateInfo compileTemplate(GTTemplateLocation templateLocation) throws GTException {
+        TemplateInfo ti;
+        try {
+            // compile it
+            GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory, true).compile( templateLocation);
+
+            GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
+
+            ti = new TemplateInfo(templateLocation, templateInstanceFactory, compiledTemplate);
+        } catch(GTTemplateNotFound e) {
+            throw e;
+        } catch(GTCompilationExceptionWithSourceInfo e) {
+            throw e;
+        } catch (Exception e) {
+            // Must only store it if no error occurs
+            throw new GTCompilationException(e);
+        }
+        return ti;
     }
 
     // converts stacktrace-elements referring to generated template code into pointin to the correct template-file and line
