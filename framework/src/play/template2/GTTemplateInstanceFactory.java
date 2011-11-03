@@ -66,4 +66,8 @@ public class GTTemplateInstanceFactory {
             throw new GTException("Error creating template instance", e);
         }
     }
+
+    public Class<? extends GTJavaBase> getTemplateClass() {
+        return templateClass;
+    }
 }

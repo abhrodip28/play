@@ -10,11 +10,11 @@ import org.codehaus.groovy.control.messages.Message;
 import org.codehaus.groovy.control.messages.SyntaxErrorMessage;
 import org.codehaus.groovy.syntax.SyntaxException;
 import org.codehaus.groovy.tools.GroovyClass;
+import play.template2.GTLineMapper;
 import play.template2.GTTemplateLocation;
 import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -29,7 +29,7 @@ public class GTGroovyCompileToClass {
         this.parentClassLoader = parentClassLoader;
     }
 
-    public GTJavaCompileToClass.CompiledClass[] compileGroovySource( GTTemplateLocation templateLocation, GTCompiler.LineMapper lineMapper, String groovySource) {
+    public GTJavaCompileToClass.CompiledClass[] compileGroovySource( GTTemplateLocation templateLocation, GTLineMapper lineMapper, String groovySource) {
 
         final List<GroovyClass> groovyClassesForThisTemplate = new ArrayList<GroovyClass>();
 

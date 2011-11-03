@@ -34,9 +34,8 @@ public class GTTemplateRepo {
         public final long fileSize;
         public final long fileDate;
         public final GTTemplateInstanceFactory templateInstanceFactory;
-        public final GTCompiler.CompiledTemplate compiledTemplate;
 
-        private TemplateInfo(GTTemplateLocation templateLocation, GTTemplateInstanceFactory templateInstanceFactory, GTCompiler.CompiledTemplate compiledTemplate) {
+        private TemplateInfo(GTTemplateLocation templateLocation, GTTemplateInstanceFactory templateInstanceFactory) {
             this.templateLocation = templateLocation;
 
             if ( templateLocation instanceof GTTemplateLocationReal) {
@@ -50,7 +49,6 @@ public class GTTemplateRepo {
                 fileDate = 0;
             }
             this.templateInstanceFactory = templateInstanceFactory;
-            this.compiledTemplate = compiledTemplate;
         }
 
         public boolean isModified() {
@@ -73,6 +71,26 @@ public class GTTemplateRepo {
             }
 
             return false;
+        }
+
+        public Class<? extends GTJavaBase> getTemplateClass() {
+            return templateInstanceFactory.getTemplateClass();
+        }
+
+        public GTLineMapper getGroovyLineMapper() {
+            try {
+                return (GTLineMapper)getTemplateClass().getDeclaredMethod("getGroovyLineMapper").invoke(null);
+            } catch ( Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public GTLineMapper getJavaLineMapper() {
+            try {
+                return (GTLineMapper)getTemplateClass().getDeclaredMethod("getJavaLineMapper").invoke(null);
+            } catch ( Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -107,12 +125,14 @@ public class GTTemplateRepo {
 
     private void removeTemplate ( String templatePath ) {
         TemplateInfo ti = loadedTemplates.remove( templatePath);
-        classname2TemplateInfo.remove(ti.compiledTemplate.templateClassName);
+        if ( ti!=null) {
+            classname2TemplateInfo.remove(ti.getTemplateClass().getName());
+        }
     }
 
     private void addTemplate ( String templatePath, TemplateInfo ti) {
         loadedTemplates.put(templatePath, ti);
-        classname2TemplateInfo.put(ti.compiledTemplate.templateClassName, ti);
+        classname2TemplateInfo.put(ti.getTemplateClass().getName(), ti);
     }
 
     public GTJavaBase getTemplateInstance( final GTTemplateLocation templateLocation) throws GTTemplateNotFound {
@@ -165,7 +185,7 @@ public class GTTemplateRepo {
 
     public void removeTemplate(GTTemplateLocation templateLocation) {
         synchronized(loadedTemplates) {
-            loadedTemplates.remove( templateLocation.relativePath);
+            removeTemplate( templateLocation.relativePath);
         }
     }
 
@@ -177,7 +197,7 @@ public class GTTemplateRepo {
 
             GTTemplateInstanceFactory templateInstanceFactory = new GTTemplateInstanceFactory(parentClassLoader, compiledTemplate);
 
-            ti = new TemplateInfo(templateLocation, templateInstanceFactory, compiledTemplate);
+            ti = new TemplateInfo(templateLocation, templateInstanceFactory);
         } catch(GTTemplateNotFound e) {
             throw e;
         } catch(GTCompilationExceptionWithSourceInfo e) {
@@ -254,10 +274,10 @@ public class GTTemplateRepo {
                         prevTi = ti;
 
                         if ( groovy) {
-                            lineNo = ti.compiledTemplate.groovyLineMapper.translateLineNo(se.getLineNumber());
+                            lineNo = ti.getGroovyLineMapper().translateLineNo(se.getLineNumber());
                         } else {
                             // java
-                            lineNo = ti.compiledTemplate.javaLineMapper.translateLineNo(se.getLineNumber());
+                            lineNo = ti.getJavaLineMapper().translateLineNo(se.getLineNumber());
                         }
                         se = new StackTraceElement(ti.templateLocation.relativePath, "", "line", lineNo);
                     }

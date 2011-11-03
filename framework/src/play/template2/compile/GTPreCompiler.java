@@ -3,6 +3,7 @@ package play.template2.compile;
 import play.template2.GTFastTagResolver;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
+import play.template2.GTLineMapper;
 import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
@@ -146,12 +147,16 @@ public class GTPreCompiler {
         public final String javaCode;
         public final String groovyClassName;
         public final String groovyCode;
+        public final GTLineMapper javaLineMapper;
+        public final GTLineMapper groovyLineMapper;
 
-        public Output(String javaClassName, String javaCode, String groovyClassName, String groovyCode) {
+        public Output(String javaClassName, String javaCode, String groovyClassName, String groovyCode, GTLineMapper javaLineMapper, GTLineMapper groovyLineMapper) {
             this.javaClassName = javaClassName;
             this.javaCode = javaCode;
             this.groovyClassName = groovyClassName;
             this.groovyCode = groovyCode;
+            this.javaLineMapper = javaLineMapper;
+            this.groovyLineMapper = groovyLineMapper;
         }
 
         @Override
@@ -209,6 +214,7 @@ public class GTPreCompiler {
 
         sc.jprintln("import java.util.*;");
         sc.jprintln("import java.io.*;");
+        sc.jprintln("import play.template2.GTLineMapper;");
 
         sc.jprintln("public class " + templateClassName + " extends " + getJavaBaseClass().getName() + " {");
 
@@ -231,9 +237,6 @@ public class GTPreCompiler {
         sc.jprintln(" }");
 
 
-        // end of java class
-        sc.jprintln("}");
-
         if ( sc.pimpInfo.needPimping) {
             sc.gprintln(" public Object run(){");
             sc.gprintln(sc.pimpInfo.pimpStart + "");
@@ -245,7 +248,24 @@ public class GTPreCompiler {
         // end of groovy class
         sc.gprintln("}");
 
-        return new Output( generatedPackageName+"."+templateClassName, sc._out.toString(), generatedPackageName+"."+templateClassNameGroovy, sc._gout.toString());
+        // Last we have to generate lineMapper so they are included in our compiled class
+        String[] javaLines = sc._out.toString().split("\n");
+        GTLineMapper javaLineMapper = new GTLineMapper( javaLines);
+        String[] groovyLines = sc._gout.toString().split("\n");
+        GTLineMapper groovyLineMapper = new GTLineMapper( groovyLines);
+
+        sc.jprintln( " private static GTLineMapper javaLineMapper = new GTLineMapper(new Integer[]{"+javaLineMapper.getLineLookupAsString()+"});" );
+        sc.jprintln( " private static GTLineMapper groovyLineMapper = new GTLineMapper(new Integer[]{"+groovyLineMapper.getLineLookupAsString()+"});" );
+
+        sc.jprintln( " public static GTLineMapper getJavaLineMapper() { return javaLineMapper;}");
+        sc.jprintln( " public static GTLineMapper getGroovyLineMapper() { return groovyLineMapper;}");
+
+        // end of java class
+        sc.jprintln("}");
+
+
+
+        return new Output( generatedPackageName+"."+templateClassName, sc._out.toString(), generatedPackageName+"."+templateClassNameGroovy, sc._gout.toString(), javaLineMapper, groovyLineMapper);
     }
 
     private String generateTemplateClassname(String relativePath) {
