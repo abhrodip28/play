@@ -181,6 +181,9 @@ public class GTTemplateRepo {
 
                     ti = compileTemplate(templateLocation);
 
+                }
+
+                if ( ti != null) {
                     // store it
                     addTemplate(templateLocation.relativePath, ti);
 
