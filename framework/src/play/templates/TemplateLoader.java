@@ -44,6 +44,8 @@ public class TemplateLoader {
         File folderToDumpClassesIn = null;
         if ( System.getProperty("precompile")!=null) {
             folderToDumpClassesIn = new File(Play.applicationPath, "precompiled/java");
+        } else if( Play.mode != Play.Mode.PROD ) {
+            folderToDumpClassesIn = new File(Play.applicationPath, "tmp/gttemplates");
         }
 
         templateRepo = new GTTemplateRepo(

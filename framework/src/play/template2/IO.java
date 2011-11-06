@@ -76,6 +76,31 @@ public abstract class IO {
         }
     }
 
+    /**
+     * Read binary content of a file (warning does not use on large file !)
+     * @param file The file te read
+     * @return The binary data
+     */
+    public static byte[] readContent(File file) {
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            byte[] result = new byte[(int) file.length()];
+            is.read(result);
+            return result;
+        } catch(IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(is != null) {
+                try {
+                    is.close();
+                } catch(Exception e) {
+                    //
+                }
+            }
+        }
+    }
+
 
 
 }

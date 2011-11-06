@@ -13,6 +13,7 @@ import play.template2.exceptions.GTTemplateNotFound;
 import play.template2.exceptions.GTTemplateRuntimeException;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -115,22 +116,15 @@ public class GTTemplateRepo {
     }
 
 
-    public boolean templateExists( String relativePath) {
+    public boolean templateExists( GTTemplateLocation templateLocation) {
 
-        // first we check the cache
-        if( loadedTemplates.containsKey(relativePath) ) {
+        try {
+            getTemplateInstance( templateLocation, false);
             return true;
-        }
-
-        if ( lookForPreCompiled( new GTTemplateLocation(relativePath)) != null) {
-            return true;
-        };
-
-        final GTTemplateLocation templateLocation = GTFileResolver.impl.getTemplateLocationReal( relativePath );
-        if ( templateLocation == null ) {
+        } catch( Exception e) {
+            // nop
             return false;
         }
-        return true;
     }
 
     private void removeTemplate ( String templatePath ) {
@@ -146,6 +140,10 @@ public class GTTemplateRepo {
     }
 
     public GTJavaBase getTemplateInstance( final GTTemplateLocation templateLocation) throws GTTemplateNotFound {
+        return getTemplateInstance(templateLocation, true);
+    }
+
+    protected GTJavaBase getTemplateInstance( final GTTemplateLocation templateLocation, boolean doCompile) throws GTTemplateNotFound {
 
         // Is this a loaded template ?
         TemplateInfo ti = loadedTemplates.get(templateLocation.relativePath);
@@ -156,7 +154,7 @@ public class GTTemplateRepo {
 
                 if ( ti == null ) {
                     // look for compiled class (precompiled class or class in cache.)
-                    ti = lookForPreCompiled(templateLocation);
+                    ti = lookForPreCompiledOrCached(templateLocation);
                 }
 
                 if ( ti != null) {
@@ -177,6 +175,11 @@ public class GTTemplateRepo {
                         if ( !file.exists() || !file.isFile()) {
                             throw new GTTemplateNotFound( templateLocation.relativePath);
                         }
+                    }
+
+                    if ( !doCompile) {
+                        // We know the compile exists - skip compiling.
+                        return null;
                     }
 
                     ti = compileTemplate(templateLocation);
@@ -203,7 +206,7 @@ public class GTTemplateRepo {
 
     // If running in precompiled mode, we look in parent classloader,
     // if not we're looking for class on disk.
-    private TemplateInfo lookForPreCompiled(GTTemplateLocation templateLocation) {
+    private TemplateInfo lookForPreCompiledOrCached(GTTemplateLocation templateLocation) {
         String templateClassName = GTPreCompiler.generatedPackageName + "." + GTPreCompiler.generateTemplateClassname( templateLocation.relativePath);
         if (preCompiledMode) {
             // compiled template classes are loaded by framework as regular classes....
@@ -215,8 +218,57 @@ public class GTTemplateRepo {
             } catch (ClassNotFoundException e) {
                 // nop..
             }
+        } else if(folderToDumpClassesIn != null){
+
+            return loadTemplateFromDisk(templateLocation, templateClassName);
         }
+
         return null;
+    }
+
+    private TemplateInfo loadTemplateFromDisk(GTTemplateLocation templateLocation, String templateClassName) {
+        // generate filename
+        final String classFilenameWithPath = templateClassName.replace('.','/') + ".class";
+        final File file = new File(folderToDumpClassesIn, classFilenameWithPath);
+        if ( !file.exists()) {
+            return null;
+        }
+
+        // create templateLocationReal to actuall template src file
+        GTTemplateLocationReal templateLocationReal = GTFileResolver.impl.getTemplateLocationFromRelativePath(templateLocation.relativePath);
+
+        // check if class file and template-src have the same lastModified date
+        if ( templateLocationReal.realFile.lastModified() != file.lastModified()) {
+            // cached classes are old. cannot use them. delete it so we don't find it again
+            file.delete();
+            return null;
+        }
+
+
+        // found the main template class file - must load all classes for this template - which all starts with the same name..
+        final File folder = file.getParentFile();
+        final String simpleFilename = file.getName().substring(0, file.getName().length() - 6); // remove ".class"
+        File[] allClassFiles = folder.listFiles( new FilenameFilter() {
+            public boolean accept(File file, String s) {
+                return s.startsWith( simpleFilename);
+            }
+        });
+
+        GTJavaCompileToClass.CompiledClass[] compiledClasses = new GTJavaCompileToClass.CompiledClass[allClassFiles.length];
+        int i=0;
+        for ( File classFile : allClassFiles) {
+            byte[] bytes = IO.readContent( classFile);
+            String className = GTPreCompiler.generatedPackageName + "." + classFile.getName().substring(0, classFile.getName().length() - 6); // remove ".class";
+
+            compiledClasses[i++] = new GTJavaCompileToClass.CompiledClass(className, bytes);
+        }
+
+        GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler.CompiledTemplate(templateClassName, compiledClasses);
+
+
+        return new TemplateInfo( templateLocationReal, new GTTemplateInstanceFactoryLive(parentClassLoader, compiledTemplate) );
+        
+
     }
 
     public void removeTemplate(GTTemplateLocation templateLocation) {
@@ -231,13 +283,18 @@ public class GTTemplateRepo {
             // compile it
             GTCompiler.CompiledTemplate compiledTemplate = new GTCompiler(parentClassLoader, this, preCompilerFactory, true).compile( templateLocation);
 
-            if (folderToDumpClassesIn != null) {
+            if (folderToDumpClassesIn != null && templateLocation instanceof GTTemplateLocationReal) {
                 // Must dump these classes in folder...
+
+                long templateLastModified = ((GTTemplateLocationReal)templateLocation).realFile.lastModified();
+
                 for ( GTJavaCompileToClass.CompiledClass compiledClass : compiledTemplate.compiledJavaClasses) {
                     String filename = compiledClass.classname.replace('.','/') + ".class";
                     File file = new File(folderToDumpClassesIn, filename);
                     file.getParentFile().mkdirs();
                     IO.write( compiledClass.bytes, file);
+                    // set lastModified date on file equal to the one from the template src - then we can check if cache is valid later..
+                    file.setLastModified(templateLastModified);
                 }
 
             }

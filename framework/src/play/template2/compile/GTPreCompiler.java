@@ -1,6 +1,7 @@
 package play.template2.compile;
 
 import play.template2.GTFastTagResolver;
+import play.template2.GTFileResolver;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
 import play.template2.GTLineMapper;
@@ -759,12 +760,14 @@ public class GTPreCompiler {
                         String thisTemplateType = getTemplateType( sc );
                         // look for tag-file with same type/extension as this template
                         String tagFilePath = "tags/"+tagNamePath + "."+thisTemplateType;
-                        if (templateRepo!= null && thisTemplateType != null && templateRepo.templateExists(tagFilePath)) {
+                        GTTemplateLocationReal tagTemplateLocation = GTFileResolver.impl.getTemplateLocationReal(tagFilePath);
+                        if (templateRepo!= null && thisTemplateType != null && templateRepo.templateExists(tagTemplateLocation)) {
                             generateTagFileInvocation( tagName, tagFilePath, sc, contentMethodName);
                         } else {
                             // look for tag-file with .tag-extension
                             tagFilePath = "tags/"+tagNamePath + ".tag";
-                            if (templateRepo!= null && templateRepo.templateExists(tagFilePath)) {
+                            tagTemplateLocation = GTFileResolver.impl.getTemplateLocationReal(tagFilePath);
+                            if (templateRepo!= null && templateRepo.templateExists(tagTemplateLocation)) {
                                 generateTagFileInvocation( tagName, tagFilePath, sc, contentMethodName);
                             } else {
                                 // we give up
