@@ -31,29 +31,6 @@ public class GTCompiler {
         this.storeSourceToDisk = storeSourceToDisk;
     }
 
-    public static class CL extends ClassLoader {
-
-        private final String resourceName;
-        private final byte[] bytes;
-
-        public CL(ClassLoader parent, String classname, byte[] bytes) {
-            super(parent);
-            resourceName = classname.replace(".", "/") + ".class";;
-            this.bytes = bytes;
-            Class c = defineClass(classname, bytes, 0, bytes.length, GTTemplateInstanceFactoryLive.protectionDomain);
-            int a = 0;
-        }
-
-        @Override
-        public InputStream getResourceAsStream(String s) {
-            if (resourceName.equals(s)) {
-                return new ByteArrayInputStream(bytes);
-            } else {
-                return super.getResourceAsStream(s);
-            }
-        }
-    }
-
     public static class CompiledTemplate {
         public final String templateClassName;
         public final GTJavaCompileToClass.CompiledClass[] compiledJavaClasses;

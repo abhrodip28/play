@@ -9,7 +9,7 @@ public class GTFileResolver {
 
 
     public static interface Resolver {
-        public GTTemplateLocationReal   getTemplateLocationReal(String queryPath);
+        public GTTemplateLocationReal getTemplateLocationReal(String queryPath);
         public GTTemplateLocationReal getTemplateLocationFromRelativePath(String relativePath);
     }
 

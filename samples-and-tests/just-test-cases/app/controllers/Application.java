@@ -294,6 +294,10 @@ public class Application extends Controller {
         render();
     }
     
+    public static void newFastTag_test() {
+        render();
+    }
+    
     public static void renderAndCompileTemplateFromStringSource() {
         StringBuilder output = new StringBuilder();
         

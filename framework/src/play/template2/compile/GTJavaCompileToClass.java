@@ -32,6 +32,8 @@ public class GTJavaCompileToClass {
 
     public static String javaVersion = "1.5";
 
+    public static GTTypeResolver typeResolver;
+
     private final ClassLoader parentClassLoader;
 
     Map<String, Boolean> packagesCache = new HashMap<String, Boolean>();
@@ -214,14 +216,19 @@ public class GTJavaCompileToClass {
             private NameEnvironmentAnswer findType(final String name) {
                 try {
 
-                    String resourceName = name.replace(".", "/") + ".class";
-                    InputStream is = parentClassLoader.getResourceAsStream(resourceName);
-                    if (is==null) {
-                        return null;
-                    }
-                    byte[] bytes = readContent(is);
+                    // first let the framework try to resolve
+                    byte[] bytes = typeResolver.getTypeBytes(name);
+                    if (bytes == null) {
+                        // Now look for our own classes
+                        String resourceName = name.replace(".", "/") + ".class";
+                        InputStream is = parentClassLoader.getResourceAsStream(resourceName);
+                        if (is==null) {
+                            return null;
+                        }
+                        bytes = readContent(is);
 
-                    is.close();
+                        is.close();
+                    }
 
                     ClassFileReader classFileReader = new ClassFileReader(bytes, name.toCharArray(), true);
                     return new NameEnvironmentAnswer(classFileReader, null);

@@ -2,6 +2,7 @@ package play.template2.compile;
 
 import play.mvc.Http;
 import play.template2.GTContentRenderer;
+import play.template2.GTFastTag;
 import play.template2.GTFastTagResolver;
 import play.template2.GTFileResolver;
 import play.template2.GTJavaBase;
@@ -21,29 +22,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class GTInternalFastTags implements GTFastTagResolver {
+public class GTInternalFastTags extends GTFastTag {
 
 
-    public String resolveFastTag(String tagName) {
-        // Look for static methods in this class with the name "tag_tagName"
-        try {
-            Method m = getClass().getMethod("tag_"+tagName,GTJavaBase.class, Map.class, GTContentRenderer.class);
-            if (!Modifier.isStatic(m.getModifiers())) {
-                throw new RuntimeException("A fast-tag method must be static: " + m);
-            }
-        } catch( NoSuchMethodException e) {
-            // not found
-            return null;
-        }
-
-        return getClass().getName() + ".tag_" + tagName;
-    }
-
-    public static void tag_testFastTag(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
-        template.out.append("[testFastTag before]");
-        template.insertOutput( content.render());
-        template.out.append("[from testFastTag after]");
-    }
 
     public static void tag_get(GTJavaBase template, Map<String, Object> args, GTContentRenderer content ) {
 

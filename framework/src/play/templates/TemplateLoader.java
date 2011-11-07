@@ -2,6 +2,7 @@ package play.templates;
 
 import play.Logger;
 import play.Play;
+import play.classloading.GTTypeResolver1xImpl;
 import play.exceptions.TemplateCompilationException;
 import play.exceptions.TemplateNotFoundException;
 import play.libs.Codec;
@@ -12,6 +13,7 @@ import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
 import play.template2.compile.GTCompiler;
+import play.template2.compile.GTJavaCompileToClass;
 import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.exceptions.GTTemplateNotFound;
@@ -47,6 +49,8 @@ public class TemplateLoader {
         } else if( Play.mode != Play.Mode.PROD ) {
             folderToDumpClassesIn = new File(Play.applicationPath, "tmp/gttemplates");
         }
+
+        GTJavaCompileToClass.typeResolver = new GTTypeResolver1xImpl();
 
         templateRepo = new GTTemplateRepo(
                 Play.classloader,

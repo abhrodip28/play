@@ -33,6 +33,12 @@ public class ApplicationTest extends FunctionalTest {
     }
     
     @Test
+    public void testNewFastTag() {
+        Response response = GET("/application/newFastTag_test");
+        assertContentEquals("from tag", response);
+    }
+    
+    @Test
     public void testRenderAndCompileTemplateFromStringSource() {
         Response response = GET("/application/renderAndCompileTemplateFromStringSource");
         assertContentEquals("\n"+

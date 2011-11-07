@@ -19,6 +19,7 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
 
     public GTPreCompiler1xImpl(GTTemplateRepo templateRepo) {
         super(templateRepo);
+        this.customFastTagResolver = new GTFastTagResolver1x();
     }
 
 

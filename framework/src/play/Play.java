@@ -489,7 +489,7 @@ public class Play {
             }
 
             // Clean templates
-            TemplateLoader.cleanCompiledCache();
+            TemplateLoader.init();
 
             // SecretKey
             secretKey = configuration.getProperty("application.secret", "").trim();
