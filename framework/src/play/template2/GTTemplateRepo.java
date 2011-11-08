@@ -339,6 +339,11 @@ public class GTTemplateRepo {
                 }
                 i++;
             }
+
+            // unwrap this exception
+            if ( e.getCause() != null) {
+                e = e.getCause();
+            }
         }
 
         List<StackTraceElement> newSElist = new ArrayList<StackTraceElement>();

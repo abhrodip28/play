@@ -11,6 +11,7 @@ import play.exceptions.UnexpectedException;
 import play.mvc.ActionInvoker;
 import play.mvc.Http.Request;
 import play.mvc.Router;
+import play.template2.exceptions.GTTemplateRuntimeException;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -63,55 +64,59 @@ public abstract class GroovyTemplate extends BaseTemplate {
             @Override
             @SuppressWarnings("unchecked")
             public Object invokeMethod(String name, Object param) {
-                try {
-                    if (controller == null) {
-                        controller = Request.current().controller;
-                    }
-                    String action = controller + "." + name;
-                    if (action.endsWith(".call")) {
-                        action = action.substring(0, action.length() - 5);
-                    }
+                try{
                     try {
-                        Map<String, Object> r = new HashMap<String, Object>();
-                        Method actionMethod = (Method) ActionInvoker.getActionMethod(action)[1];
-                        String[] names = (String[]) actionMethod.getDeclaringClass().getDeclaredField("$" + actionMethod.getName() + LocalVariablesNamesTracer.computeMethodHash(actionMethod.getParameterTypes())).get(null);
-                        if (param instanceof Object[]) {
-                            if(((Object[])param).length == 1 && ((Object[])param)[0] instanceof Map) {
-                                r = (Map<String,Object>)((Object[])param)[0];
-                            } else {
-                                // too many parameters versus action, possibly a developer error. we must warn him.
-                                if (names.length < ((Object[]) param).length) {
-                                    throw new NoRouteFoundException(action, null);
-                                }
-                                for (int i = 0; i < ((Object[]) param).length; i++) {
-                                    if (((Object[]) param)[i] instanceof Router.ActionDefinition && ((Object[]) param)[i] != null) {
-                                        Unbinder.unBind(r, ((Object[]) param)[i].toString(), i < names.length ? names[i] : "", actionMethod.getAnnotations());
-                                    } else if (isSimpleParam(actionMethod.getParameterTypes()[i])) {
-                                        if (((Object[]) param)[i] != null) {
+                        if (controller == null) {
+                            controller = Request.current().controller;
+                        }
+                        String action = controller + "." + name;
+                        if (action.endsWith(".call")) {
+                            action = action.substring(0, action.length() - 5);
+                        }
+                        try {
+                            Map<String, Object> r = new HashMap<String, Object>();
+                            Method actionMethod = (Method) ActionInvoker.getActionMethod(action)[1];
+                            String[] names = (String[]) actionMethod.getDeclaringClass().getDeclaredField("$" + actionMethod.getName() + LocalVariablesNamesTracer.computeMethodHash(actionMethod.getParameterTypes())).get(null);
+                            if (param instanceof Object[]) {
+                                if(((Object[])param).length == 1 && ((Object[])param)[0] instanceof Map) {
+                                    r = (Map<String,Object>)((Object[])param)[0];
+                                } else {
+                                    // too many parameters versus action, possibly a developer error. we must warn him.
+                                    if (names.length < ((Object[]) param).length) {
+                                        throw new NoRouteFoundException(action, null);
+                                    }
+                                    for (int i = 0; i < ((Object[]) param).length; i++) {
+                                        if (((Object[]) param)[i] instanceof Router.ActionDefinition && ((Object[]) param)[i] != null) {
                                             Unbinder.unBind(r, ((Object[]) param)[i].toString(), i < names.length ? names[i] : "", actionMethod.getAnnotations());
+                                        } else if (isSimpleParam(actionMethod.getParameterTypes()[i])) {
+                                            if (((Object[]) param)[i] != null) {
+                                                Unbinder.unBind(r, ((Object[]) param)[i].toString(), i < names.length ? names[i] : "", actionMethod.getAnnotations());
+                                            }
+                                        } else {
+                                            Unbinder.unBind(r, ((Object[]) param)[i], i < names.length ? names[i] : "", actionMethod.getAnnotations());
                                         }
-                                    } else {
-                                        Unbinder.unBind(r, ((Object[]) param)[i], i < names.length ? names[i] : "", actionMethod.getAnnotations());
                                     }
                                 }
                             }
+                            Router.ActionDefinition def = Router.reverse(action, r);
+                            if (absolute) {
+                                def.absolute();
+                            }
+                            if (templateName.endsWith(".xml")) {
+                                def.url = def.url.replace("&", "&amp;");
+                            }
+                            return def;
+                        } catch (ActionNotFoundException e) {
+                            throw new NoRouteFoundException(action, null);
                         }
-                        Router.ActionDefinition def = Router.reverse(action, r);
-                        if (absolute) {
-                            def.absolute();
+                    } catch (Exception e) {
+                        if (e instanceof PlayException) {
+                            throw (PlayException) e;
                         }
-                        if (templateName.endsWith(".xml")) {
-                            def.url = def.url.replace("&", "&amp;");
-                        }
-                        return def;
-                    } catch (ActionNotFoundException e) {
-                        throw new NoRouteFoundException(action, null);
+                        throw new UnexpectedException(e);
                     }
                 } catch (Exception e) {
-                    if (e instanceof PlayException) {
-                        throw (PlayException) e;
-                    }
-                    throw new UnexpectedException(e);
+                    throw new GTTemplateRuntimeException(e);
                 }
             }
         }
