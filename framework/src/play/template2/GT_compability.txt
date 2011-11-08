@@ -17,4 +17,4 @@ longValue = new Long(5);
 
 
 New feature/option:
- * Precompiler option alwaysPimpGroovy
+ * Store generated template sourcefiles to disk. Turn on in config: save-gttemplate-source-to-disk=true

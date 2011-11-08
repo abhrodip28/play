@@ -41,7 +41,9 @@ public class TemplateLoader {
         GTTemplateInstanceFactoryLive.protectionDomain = Play.classloader.protectionDomain;
         // set up folder where we dump generated src
         GTFileResolver.impl = new GTFileResolver1xImpl(Play.templatesPath);
-        GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");
+        if (Boolean.parseBoolean( Play.configuration.getProperty("save-gttemplate-source-to-disk", "false") )) {
+            GTCompiler.srcDestFolder = new File(Play.applicationPath, "generated-src");
+        }
 
         File folderToDumpClassesIn = null;
         if ( System.getProperty("precompile")!=null) {
