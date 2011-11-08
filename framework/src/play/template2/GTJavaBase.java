@@ -188,6 +188,8 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public abstract String convertRawDataToString(Object rawData);
 
     public abstract String escapeHTML( String s);
+    public abstract String escapeXML( String s);
+    public abstract String escapeCsv( String s);
 
 
 
@@ -197,7 +199,13 @@ public abstract class GTJavaBase extends GTRenderingResult {
         if (rawDataClass != null && rawDataClass.isAssignableFrom(o.getClass())) {
             return convertRawDataToString(o);
         } else if (!templateLocation.relativePath.endsWith(".html") || GTTagContext.hasParentTag("verbatim")) {
-            return o.toString();
+            if ( templateLocation.relativePath.endsWith(".xml")) {
+                return escapeXML(o.toString());
+            } else if ( templateLocation.relativePath.endsWith(".csv")) {
+                return escapeCsv(o.toString());
+            } else {
+                return o.toString();
+            }
         } else {
             return escapeHTML( o.toString());
         }

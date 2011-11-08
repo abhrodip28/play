@@ -1,5 +1,6 @@
 package play.templates.gt_integration;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import play.Play;
 import play.cache.Cache;
 import play.data.validation.Validation;
@@ -62,6 +63,16 @@ public abstract class GTJavaBase1xImpl extends GTJavaBase {
     @Override
     public String escapeHTML(String s) {
         return HTML.htmlEscape(s);
+    }
+
+    @Override
+    public String escapeXML(String s) {
+        return StringEscapeUtils.escapeXml(s);
+    }
+
+    @Override
+    public String escapeCsv(String s) {
+        return StringEscapeUtils.escapeCsv(s);
     }
 
     @Override

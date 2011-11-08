@@ -1,7 +1,6 @@
 * error messages
     * Remove too much text: Execution error occured in template /app/views/Application/jsRouteError.html. Exception raised was GTRuntimeExceptionWithSourceInfo : Error when executing legacy fastTag play.templates.FastTags._jsRoute.
 * integrate with old so that all "is the same"
-* optimize getJavaExtensionClasses
 * make "generated-src" configurable and add it as new feature - great for debugging
 * template render monitor stuff
 * template include/extend/render using only key and template from source without file
