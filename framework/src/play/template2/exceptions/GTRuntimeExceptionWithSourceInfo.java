@@ -4,13 +4,6 @@ import play.template2.GTTemplateLocation;
 
 import java.io.File;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mortenkjetland
- * Date: 10/23/11
- * Time: 12:37 AM
- * To change this template use File | Settings | File Templates.
- */
 public class GTRuntimeExceptionWithSourceInfo extends GTRuntimeException {
 
     public final GTTemplateLocation templateLocation;

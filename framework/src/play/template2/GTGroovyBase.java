@@ -4,13 +4,6 @@ import groovy.lang.MissingPropertyException;
 import groovy.lang.Script;
 import play.template2.exceptions.GTException;
 
-/**
- * Created by IntelliJ IDEA.
- * User: mortenkjetland
- * Date: 10/11/11
- * Time: 8:10 PM
- * To change this template use File | Settings | File Templates.
- */
 public class GTGroovyBase extends Script {
 
     @Override

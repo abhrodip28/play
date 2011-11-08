@@ -4,4 +4,3 @@
 * template render monitor stuff
 * template include/extend/render using only key and template from source without file
 * port the rest of the old fasttags? into custom fasttag..
-* remove morten kjetland from java files
