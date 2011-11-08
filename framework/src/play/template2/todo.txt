@@ -1,5 +1,3 @@
-* Namespace for new fasttags
-* Custom new fasttags
 * error messages
     * Remove too much text: Execution error occured in template /app/views/Application/jsRouteError.html. Exception raised was GTRuntimeExceptionWithSourceInfo : Error when executing legacy fastTag play.templates.FastTags._jsRoute.
 * integrate with old so that all "is the same"
