@@ -407,18 +407,22 @@ public class GTTemplateRepo {
 
         }
 
-        StackTraceElement[] newStackTranceAray = newSElist.toArray(new StackTraceElement[]{});
+        StackTraceElement[] newStackTranceArray = newSElist.toArray(new StackTraceElement[]{});
 
         if ( errorTI != null) {
             // The top-most error is a template error and we have the source.
             // generate GTRuntimeExceptionWithSourceInfo
             GTRuntimeExceptionWithSourceInfo newE = new GTRuntimeExceptionWithSourceInfo(e.getMessage(), e, errorTI.templateLocation, errorLine);
-            newE.setStackTrace( newStackTranceAray) ;
+            newE.setStackTrace( newStackTranceArray);
+            // also update the stacktrace of the cause-exception
+            e.setStackTrace( newStackTranceArray);
             return newE;
         } else {
             // The topmost error is not inside a template - wrap it in GTRuntimeException
             GTRuntimeException newE = new GTRuntimeException(e.getMessage(), e);
-            newE.setStackTrace(newStackTranceAray);
+            newE.setStackTrace(newStackTranceArray);
+            // also update the stacktrace of the cause-exception
+            e.setStackTrace( newStackTranceArray);
             return newE;
         }
     }
