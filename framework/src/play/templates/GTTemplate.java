@@ -12,6 +12,7 @@ import play.template2.GTRenderingResult;
 import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
+import play.template2.exceptions.GTRuntimeException;
 import play.template2.exceptions.GTRuntimeExceptionWithSourceInfo;
 import play.template2.exceptions.GTTemplateNotFoundWithSourceInfo;
 
@@ -97,7 +98,15 @@ public class GTTemplate extends Template{
         } catch (GTRuntimeExceptionWithSourceInfo e){
             GTTemplate t = new GTTemplate(e.templateLocation);
             t.loadSource();
-            throw new TemplateExecutionException( t, e.lineNo, e.getMessage(), e);
+            Throwable cause = e.getCause();
+            throw new TemplateExecutionException( t, e.lineNo, cause.getMessage(), cause);
+        } catch ( GTRuntimeException e) {
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                throw new TemplateExecutionException(null, 0, cause.getMessage(), cause);
+            } else {
+                throw new TemplateExecutionException(null, 0, e.getMessage(), e);
+            }
         }
 
     }

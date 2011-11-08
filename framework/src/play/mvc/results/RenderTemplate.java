@@ -26,18 +26,14 @@ public class RenderTemplate extends Result {
         if (args.containsKey("out")) {
             throw new RuntimeException("Assertion failed! args shouldn't contain out");
         }
-        try {
-            if ( template instanceof GTTemplate) {
-                // render it without storing it in string..
-                GTTemplate gtt = (GTTemplate)template;
-                renderingResult = gtt.internalGTRender(args);
-                this.content = null;
-            } else {
-                this.content = template.render(args);
-                this.renderingResult = null;
-            }
-        } catch ( GTRuntimeException e) {
-            throw new TemplateExecutionException(null, 0, e.getMessage(), e);
+        if ( template instanceof GTTemplate) {
+            // render it without storing it in string..
+            GTTemplate gtt = (GTTemplate)template;
+            renderingResult = gtt.internalGTRender(args);
+            this.content = null;
+        } else {
+            this.content = template.render(args);
+            this.renderingResult = null;
         }
     }
 
