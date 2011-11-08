@@ -18,3 +18,7 @@ longValue = new Long(5);
 
 New feature/option:
  * Store generated template sourcefiles to disk. Turn on in config: save-gttemplate-source-to-disk=true
+
+
+
+IDE: build: org.codehaus.groovy.transform.ASTTransformation

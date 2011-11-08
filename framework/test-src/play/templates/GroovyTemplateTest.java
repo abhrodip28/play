@@ -1,10 +1,12 @@
 package play.templates;
 
 import org.junit.Test;
+import play.Play;
 import play.PlayBuilder;
 import play.template2.compile.GTPreCompiler;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,31 @@ import static org.fest.assertions.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 public class GroovyTemplateTest {
+
+    static class BeanA {
+        public int b;
+    }
+
+    @Test
+    public void pimpTest() {
+
+        new PlayBuilder().build();
+        Play.configuration.setProperty("save-gttemplate-source-to-disk", "true");
+        TemplateLoader.init();
+
+        String groovySrc = "${a.b.format(\"###,###\")}\n#{list items: myList, as: 'i'}${i.format('###,###')}#{/list}";
+        //String groovySrc = "${java.lang.Integer.toString(12)}";
+
+
+        Map<String, Object> args = new HashMap<String, Object>();
+        BeanA beanA = new BeanA();
+        beanA.b = 12345;
+        args.put("a", beanA);
+        args.put("myList", Arrays.asList(1,2,3));
+
+        String res = TemplateLoader.load("q", groovySrc, true).render(args);
+        System.out.println("res: " + res);
+    }
 
     @Test
     public void runit() {

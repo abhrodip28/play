@@ -28,6 +28,50 @@ public class GTGroovyCompileToClass {
     public GTGroovyCompileToClass(ClassLoader parentClassLoader) {
         this.parentClassLoader = parentClassLoader;
     }
+/*
+    static class GTOptimizerVisitor extends OptimizerVisitor {
+        GTOptimizerVisitor(CompilationUnit cu) {
+            super(cu);
+        }
+
+        @Override
+        public Expression transform(Expression exp) {
+            if ( exp instanceof MethodCallExpression) {
+                MethodCallExpression me = (MethodCallExpression)exp;
+
+                if ("format".equals(me.getMethodAsString())) {
+                    ClassExpression ce = new ClassExpression( new ClassNode(JavaExtensions.class));
+                    return super.transform(new MethodCallExpression(ce, "fubar", me.getArguments() ));
+                } else {
+                    return super.transform(exp);
+                }
+            } else {
+                return super.transform(exp);
+            }
+        }
+    }
+*/
+    static class GTCompilationUnit extends CompilationUnit {
+        GTCompilationUnit(CompilerConfiguration configuration) {
+            super(configuration, null, null, new GroovyClassLoader(GTCompilationUnit.class.getClassLoader()));
+            //optimizer = new GTOptimizerVisitor(this);
+        }
+
+        public LinkedList[] getPhases() {
+            LinkedList[] phases;
+            try {
+                Field phasesF = CompilationUnit.class.getDeclaredField("phaseOperations");
+                phasesF.setAccessible(true);
+                phases = (LinkedList[]) phasesF.get(this);
+                return phases;
+            } catch (Exception e) {
+                throw new RuntimeException("Not supposed to happen", e);
+            }
+        }
+
+
+    }
+
 
     public GTJavaCompileToClass.CompiledClass[] compileGroovySource( GTTemplateLocation templateLocation, GTLineMapper lineMapper, String groovySource) {
 
@@ -37,17 +81,9 @@ public class GTGroovyCompileToClass {
 
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
         compilerConfiguration.setSourceEncoding("utf-8"); // ouf
-        CompilationUnit compilationUnit = new CompilationUnit(compilerConfiguration);
+        GTCompilationUnit compilationUnit = new GTCompilationUnit(compilerConfiguration);
         compilationUnit.addSource(new SourceUnit("", groovySource, compilerConfiguration, classLoader, compilationUnit.getErrorCollector()));
-        Field phasesF;
-        LinkedList[] phases;
-        try {
-            phasesF = compilationUnit.getClass().getDeclaredField("phaseOperations");
-            phasesF.setAccessible(true);
-            phases = (LinkedList[]) phasesF.get(compilationUnit);
-        } catch (Exception e) {
-            throw new RuntimeException("Not supposed to happen", e);
-        }
+        LinkedList[] phases = compilationUnit.getPhases();
 
         LinkedList<CompilationUnit.GroovyClassOperation> output = new LinkedList<CompilationUnit.GroovyClassOperation>();
         phases[Phases.OUTPUT] = output;
