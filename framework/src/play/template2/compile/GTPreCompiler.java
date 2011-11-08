@@ -578,7 +578,7 @@ public class GTPreCompiler {
             return null;
         }
         
-        String oneLiner = plainText.replace("\\", "\\\\").replaceAll("\"", "\\\\\"").replaceAll("\r\n", "\n").replaceAll("\n", "\\\\n");
+        String oneLiner = plainText.replace("\\", "\\\\").replaceAll("\"", "\\\\\"").replaceAll("\n", "\\\\n").replaceAll("\r", "\\\\r");
 
         if ( oneLiner.length() > 0) {
             return new GTFragmentCode(startLine, "out.append(\""+oneLiner+"\");");
