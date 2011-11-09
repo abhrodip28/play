@@ -880,7 +880,7 @@ public class GTPreCompiler {
 
                 int lineNo = s.startLine;
                 //gout.append(sc.pimpStart+"");
-                for ( String line : s.scriptSource.split("\n",-1)) {
+                for ( String line : s.scriptSource.split("\\r?\\n",-1)) { // we can ignore \r here - have no meaning in groovy source file
                     sc.gprintln(line, lineNo++);
                 }
 
