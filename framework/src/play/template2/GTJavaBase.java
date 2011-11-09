@@ -44,14 +44,12 @@ public abstract class GTJavaBase extends GTRenderingResult {
     public GTTemplateRepo templateRepo;
 
     public final GTTemplateLocation templateLocation;
-    protected final boolean alwaysPimpingGroovy;
 
     public static ThreadLocal<Map<Object, Object>> layoutData = new ThreadLocal<Map<Object, Object>>();
 
-    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation, boolean alwaysPimpingGroovy ) {
+    public GTJavaBase(Class<? extends GTGroovyBase> groovyClass, GTTemplateLocation templateLocation ) {
         this.groovyClass = groovyClass;
         this.templateLocation = templateLocation;
-        this.alwaysPimpingGroovy = alwaysPimpingGroovy;
 
         initNewOut();
 
@@ -126,16 +124,9 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
 
             // create a property in groovy so that groovy can find us (this)
-            //groovyScript.setProperty("java_class", this);
 
-
-            if ( alwaysPimpingGroovy) {
-                // call groovy which pimps, then calls _renderTemplate
-                groovyScript.run();
-            } else {
-                // call _renderTemplate directly
-                _renderTemplate();
-            }
+            // call _renderTemplate directly
+            _renderTemplate();
 
             // check if "we" have extended another template..
             if (extendsTemplateLocation != null) {

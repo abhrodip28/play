@@ -13,11 +13,13 @@ import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
 import play.template2.GTTemplateRepo;
 import play.template2.compile.GTCompiler;
+import play.template2.compile.GTGroovyPimpTransformer;
 import play.template2.compile.GTJavaCompileToClass;
 import play.template2.exceptions.GTCompilationException;
 import play.template2.exceptions.GTCompilationExceptionWithSourceInfo;
 import play.template2.exceptions.GTTemplateNotFound;
 import play.templates.gt_integration.GTFileResolver1xImpl;
+import play.templates.gt_integration.GTJavaExtensionMethodResolver1x;
 import play.templates.gt_integration.PreCompilerFactory;
 import play.vfs.VirtualFile;
 
@@ -38,6 +40,7 @@ public class TemplateLoader {
             return ;
         }
 
+        GTGroovyPimpTransformer.gtJavaExtensionMethodResolver = new GTJavaExtensionMethodResolver1x();
         GTTemplateInstanceFactoryLive.protectionDomain = Play.classloader.protectionDomain;
         // set up folder where we dump generated src
         GTFileResolver.impl = new GTFileResolver1xImpl(Play.templatesPath);

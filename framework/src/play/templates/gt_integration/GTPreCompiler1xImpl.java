@@ -16,9 +16,6 @@ import java.util.regex.Pattern;
 
 public class GTPreCompiler1xImpl extends GTPreCompiler {
 
-    private static Object lock = new Object();
-    private static ApplicationClassloaderState _lastKnownApplicationClassloaderState = null;
-    private static List<Class> extensionsClassnames = null;
 
     private GTLegacyFastTagResolver legacyFastTagResolver = new GTLegacyFastTagResolver1X();
 
@@ -88,32 +85,6 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
     @Override
     public Class<? extends GTJavaBase> getJavaBaseClass() {
         return GTJavaBase1xImpl.class;
-    }
-
-    @Override
-    public List<Class> getJavaExtensionClasses() {
-
-        synchronized (lock) {
-            if (_lastKnownApplicationClassloaderState == null || !_lastKnownApplicationClassloaderState.equals(Play.classloader.currentState) || extensionsClassnames == null) {
-                _lastKnownApplicationClassloaderState = Play.classloader.currentState;
-                extensionsClassnames = new ArrayList<Class>(5);
-                extensionsClassnames.add(JavaExtensions.class);
-                try {
-                    for ( String moduleExtensionName : Play.pluginCollection.addTemplateExtensions()) {
-                        Class clazz = Play.classloader.loadClass( moduleExtensionName);
-                        extensionsClassnames.add( clazz );
-                    }
-
-                    List<Class> extensionsClasses = Play.classloader.getAssignableClasses(JavaExtensions.class);
-                    for (Class extensionsClass : extensionsClasses) {
-                        extensionsClassnames.add(extensionsClass);
-                    }
-                } catch (Throwable e) {
-                    //
-                }
-            }
-        }
-        return extensionsClassnames;
     }
 
     @Override

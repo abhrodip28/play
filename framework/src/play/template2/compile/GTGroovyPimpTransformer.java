@@ -27,6 +27,8 @@ import play.templates.JavaExtensions;
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class GTGroovyPimpTransformer implements ASTTransformation {
 
+    public static GTJavaExtensionMethodResolver gtJavaExtensionMethodResolver;
+
     static class Trans extends ClassCodeExpressionTransformer {
 
         final SourceUnit sourceUnit;
@@ -45,8 +47,8 @@ public class GTGroovyPimpTransformer implements ASTTransformation {
             if ( exp instanceof MethodCallExpression) {
                 MethodCallExpression me = (MethodCallExpression)exp;
 
-                Class jeClazz = JavaExtensions.class;
-                if ("format".equals(me.getMethodAsString())) {
+                Class jeClazz = gtJavaExtensionMethodResolver.findClassWithMethod(me.getMethodAsString());
+                if (jeClazz != null) {
                     ClassExpression ce = new ClassExpression( new ClassNode(GTJavaExtensionsInvoker.class));
 
                     ArgumentListExpression newArgs = new ArgumentListExpression();
@@ -59,9 +61,11 @@ public class GTGroovyPimpTransformer implements ASTTransformation {
                     me.setMethod( new ConstantExpression("invoke"));
                     me.setArguments(newArgs);
                     me.setObjectExpression(ce);
+                    return exp.transformExpression(this);
                 }
             }
-            return exp.transformExpression(this);
+            return super.transform(exp);
+
         }
 
 
