@@ -8,6 +8,7 @@ import org.codehaus.groovy.ast.CodeVisitorSupport;
 import org.codehaus.groovy.ast.GroovyClassVisitor;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.expr.ArgumentListExpression;
+import org.codehaus.groovy.ast.expr.ArrayExpression;
 import org.codehaus.groovy.ast.expr.ClassExpression;
 import org.codehaus.groovy.ast.expr.ConstantExpression;
 import org.codehaus.groovy.ast.expr.Expression;
@@ -20,6 +21,7 @@ import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.transform.ASTTransformation;
 import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.codehaus.groovy.transform.powerassert.StatementReplacingVisitorSupport;
+import play.template2.GTJavaExtensionsInvoker;
 import play.templates.JavaExtensions;
 
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
@@ -43,11 +45,19 @@ public class GTGroovyPimpTransformer implements ASTTransformation {
             if ( exp instanceof MethodCallExpression) {
                 MethodCallExpression me = (MethodCallExpression)exp;
 
+                Class jeClazz = JavaExtensions.class;
                 if ("format".equals(me.getMethodAsString())) {
-                    ClassExpression ce = new ClassExpression( new ClassNode(JavaExtensions.class));
+                    ClassExpression ce = new ClassExpression( new ClassNode(GTJavaExtensionsInvoker.class));
+
+                    ArgumentListExpression newArgs = new ArgumentListExpression();
                     ArgumentListExpression args = (ArgumentListExpression)me.getArguments();
-                    args.getExpressions().add(0, me.getObjectExpression());
-                    exp = new MethodCallExpression(ce, "format", me.getArguments() );
+                    newArgs.getExpressions().add(new ClassExpression( new ClassNode(jeClazz)));
+                    newArgs.getExpressions().add(new ConstantExpression(me.getMethodAsString()));
+                    newArgs.getExpressions().add(me.getObjectExpression());
+                    newArgs.getExpressions().add( new ArrayExpression( new ClassNode(Object.class), args.getExpressions()));
+
+
+                    exp = new MethodCallExpression(ce, "invoke", newArgs );
                 }
             }
             return exp.transformExpression(this);
