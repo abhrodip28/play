@@ -24,7 +24,7 @@ public class GroovyTemplateTest {
     public void pimpTest() {
 
         new PlayBuilder().build();
-        Play.configuration.setProperty("save-gttemplate-source-to-disk", "true");
+        //Play.configuration.setProperty("save-gttemplate-source-to-disk", "true");
         TemplateLoader.init();
 
         String groovySrc = "${a.b.format(\"###,###\")}\n#{list items: myList, as: 'i'}${i.format('###,###')}#{/list}";
