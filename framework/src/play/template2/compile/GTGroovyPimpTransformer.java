@@ -56,8 +56,9 @@ public class GTGroovyPimpTransformer implements ASTTransformation {
                     newArgs.getExpressions().add(me.getObjectExpression());
                     newArgs.getExpressions().add( new ArrayExpression( new ClassNode(Object.class), args.getExpressions()));
 
-
-                    exp = new MethodCallExpression(ce, "invoke", newArgs );
+                    me.setMethod( new ConstantExpression("invoke"));
+                    me.setArguments(newArgs);
+                    me.setObjectExpression(ce);
                 }
             }
             return exp.transformExpression(this);

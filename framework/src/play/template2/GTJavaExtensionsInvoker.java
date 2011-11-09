@@ -1,5 +1,6 @@
 package play.template2;
 
+import org.apache.commons.lang.reflect.MethodUtils;
 import play.template2.exceptions.GTTemplateRuntimeException;
 
 import java.lang.reflect.Method;
@@ -18,12 +19,7 @@ public abstract class GTJavaExtensionsInvoker {
         }
         try {
 
-            Method m = null;
-            try {
-                m = object.getClass().getMethod(methodName, argsTypes);
-            } catch (NoSuchMethodException e) {
-                // nop
-            }
+            Method m = MethodUtils.getMatchingAccessibleMethod(object.getClass(), methodName, argsTypes);
             if ( m != null) {
                 // object has this method - use it
                 return m.invoke(object, args);
@@ -43,9 +39,11 @@ public abstract class GTJavaExtensionsInvoker {
             }
 
             // object does not have it - use JavaExtensions
-            m = jeClazz.getMethod( methodName, jeArgsTypes);
+            m = MethodUtils.getMatchingAccessibleMethod(jeClazz, methodName, jeArgsTypes);
 
-            return m.invoke(null, jeArgs);
+            Object result = m.invoke(null, jeArgs);
+
+            return result;
 
         } catch (Exception e) {
             throw new GTTemplateRuntimeException(e);
