@@ -15,9 +15,9 @@ import play.template2.exceptions.GTTemplateRuntimeException;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GTTemplateRepo {
 
@@ -29,8 +29,8 @@ public class GTTemplateRepo {
 
 
 
-    private Map<String, TemplateInfo> loadedTemplates = new HashMap<String, TemplateInfo>();
-    private Map<String, TemplateInfo> classname2TemplateInfo = new HashMap<String, TemplateInfo>();
+    private Map<String, TemplateInfo> loadedTemplates = new ConcurrentHashMap<String, TemplateInfo>();
+    private Map<String, TemplateInfo> classname2TemplateInfo = new ConcurrentHashMap<String, TemplateInfo>();
 
 
     public static class TemplateInfo {
