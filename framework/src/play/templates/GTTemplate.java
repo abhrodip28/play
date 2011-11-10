@@ -1,5 +1,7 @@
 package play.templates;
 
+import com.jamonapi.Monitor;
+import com.jamonapi.MonitorFactory;
 import play.Play;
 import play.exceptions.TemplateCompilationException;
 import play.exceptions.TemplateExecutionException;
@@ -84,7 +86,12 @@ public class GTTemplate extends Template{
         try {
 
             GTJavaBase gtTemplate = getGTTemplateInstance();
-            gtTemplate.renderTemplate(args);
+            Monitor monitor = MonitorFactory.start(this.name);
+            try {
+                gtTemplate.renderTemplate(args);
+            } finally {
+                monitor.stop();
+            }
             return gtTemplate;
 
         } catch ( GTTemplateNotFoundWithSourceInfo e) {
