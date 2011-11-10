@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public abstract class GTJavaExtensionsInvoker {
 
@@ -25,7 +27,7 @@ public abstract class GTJavaExtensionsInvoker {
 
     static final RealMethodInvoker realMethodInvoker = new RealMethodInvoker();
 
-    static final Map<InvocationSignatur, InvocationInfo> invocationInfoMap = new HashMap<InvocationSignatur, InvocationInfo>();
+    static ConcurrentMap<InvocationSignatur, InvocationInfo> invocationInfoMap = new ConcurrentHashMap<InvocationSignatur, InvocationInfo>();
 
     private static final Invoker[] invokers = new Invoker[]{
             regularArgsInvoker,
@@ -84,8 +86,9 @@ public abstract class GTJavaExtensionsInvoker {
 
         public Object[] fixArgs(Object object, Object[] args) {
             // create list from object-array
-            Collection objectCollection = new ArrayList();
+
             int arrayLength = Array.getLength(object);
+            Collection objectCollection = new ArrayList(arrayLength);
             for ( int i=0; i < arrayLength; i++) {
                 objectCollection.add( Array.get(object,i));
             }
@@ -179,6 +182,7 @@ public abstract class GTJavaExtensionsInvoker {
         private final String methodName;
         private final Class objectType;
         private final Class[] argTypes;
+        private final int hash;
 
         InvocationSignatur(String methodName, Object object, Object[] args) {
             this.methodName = methodName;
@@ -190,6 +194,8 @@ public abstract class GTJavaExtensionsInvoker {
                     argTypes[i] = args.getClass();
                 }
             }
+            // precalc hash for performance reasons
+            this.hash = calcHashCode();
         }
 
         @Override
@@ -198,6 +204,10 @@ public abstract class GTJavaExtensionsInvoker {
             if (o == null || getClass() != o.getClass()) return false;
 
             InvocationSignatur that = (InvocationSignatur) o;
+
+            if ( hash != that.hash) {
+                return false;
+            }
 
             if (!Arrays.equals(argTypes, that.argTypes)) return false;
             if (!methodName.equals(that.methodName)) return false;
@@ -208,6 +218,10 @@ public abstract class GTJavaExtensionsInvoker {
 
         @Override
         public int hashCode() {
+            return hash;
+        }
+
+        private int calcHashCode() {
             int result = methodName.hashCode();
             result = 31 * result + objectType.hashCode();
             result = 31 * result + Arrays.hashCode(argTypes);
@@ -241,9 +255,7 @@ public abstract class GTJavaExtensionsInvoker {
 
             // have we resolved this before?
             InvocationInfo invocationInfo = null;
-            synchronized (invocationInfoMap) {
-                invocationInfo = invocationInfoMap.get(invocationSignatur);
-            }
+            invocationInfo = invocationInfoMap.get(invocationSignatur);
 
             if ( invocationInfo != null ) {
                 Invoker invoker = invocationInfo.invoker;
@@ -281,10 +293,8 @@ public abstract class GTJavaExtensionsInvoker {
             }
 
             if (invokerExecutor != null) {
+                invocationInfoMap.putIfAbsent(invocationSignatur, new InvocationInfo(m, methodName, invokerExecutor, invoker));
                 Object res = invokerExecutor.doIt(m, methodName, object, (invoker!=null ? invoker.fixArgs(object, args) : null));
-                synchronized (invocationInfoMap) {
-                    invocationInfoMap.put(invocationSignatur, new InvocationInfo(m, methodName, invokerExecutor, invoker));
-                }
                 return res;
             } else {
                 throw new NoSuchMethodException(methodName);
