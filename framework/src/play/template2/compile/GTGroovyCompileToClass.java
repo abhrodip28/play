@@ -28,29 +28,7 @@ public class GTGroovyCompileToClass {
     public GTGroovyCompileToClass(ClassLoader parentClassLoader) {
         this.parentClassLoader = parentClassLoader;
     }
-/*
-    static class GTOptimizerVisitor extends OptimizerVisitor {
-        GTOptimizerVisitor(CompilationUnit cu) {
-            super(cu);
-        }
 
-        @Override
-        public Expression transform(Expression exp) {
-            if ( exp instanceof MethodCallExpression) {
-                MethodCallExpression me = (MethodCallExpression)exp;
-
-                if ("format".equals(me.getMethodAsString())) {
-                    ClassExpression ce = new ClassExpression( new ClassNode(JavaExtensions.class));
-                    return super.transform(new MethodCallExpression(ce, "fubar", me.getArguments() ));
-                } else {
-                    return super.transform(exp);
-                }
-            } else {
-                return super.transform(exp);
-            }
-        }
-    }
-*/
     static class GTCompilationUnit extends CompilationUnit {
         GTCompilationUnit(CompilerConfiguration configuration) {
             super(configuration, null, null, new GroovyClassLoader(GTCompilationUnit.class.getClassLoader()));

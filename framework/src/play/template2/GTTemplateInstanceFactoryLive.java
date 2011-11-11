@@ -6,10 +6,15 @@ import play.template2.compile.GTJavaCompileToClass;
 import play.template2.exceptions.GTException;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.security.ProtectionDomain;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class GTTemplateInstanceFactoryLive extends GTTemplateInstanceFactory {
 
@@ -21,12 +26,18 @@ public class GTTemplateInstanceFactoryLive extends GTTemplateInstanceFactory {
 
     public static class CL extends ClassLoader {
 
-        private final Map<String, byte[]> resource2bytes = new HashMap<String, byte[]>();
+        private final Set<String> classNames;
+        private final Map<String, byte[]> resource2bytes;
+        private final ClassLoader parent;
 
         public CL(ClassLoader parent, GTJavaCompileToClass.CompiledClass[] compiledClasses) {
-            super(parent);
+            this.parent = parent;
+
+            this.classNames = new HashSet<String>(compiledClasses.length);
+            this.resource2bytes = new HashMap<String, byte[]>(compiledClasses.length);
 
             for (GTJavaCompileToClass.CompiledClass cp : compiledClasses) {
+                classNames.add(cp.classname);
                 defineClass(cp.classname, cp.bytes, 0, cp.bytes.length, GTTemplateInstanceFactoryLive.protectionDomain);
                 String resourceName = cp.classname.replace(".", "/") + ".class";
                 resource2bytes.put(resourceName, cp.bytes);
@@ -39,8 +50,46 @@ public class GTTemplateInstanceFactoryLive extends GTTemplateInstanceFactory {
             if (resource2bytes.containsKey(s)) {
                 return new ByteArrayInputStream(resource2bytes.get(s));
             } else {
-                return super.getResourceAsStream(s);
+                return parent.getResourceAsStream(s);
             }
+        }
+
+        @Override
+        public Class<?> loadClass(String s) throws ClassNotFoundException {
+            if ( !classNames.contains(s)) return parent.loadClass(s);
+            return super.loadClass(s);
+        }
+
+        @Override
+        public URL getResource(String s) {
+            if ( !classNames.contains(s)) return parent.getResource(s);
+            return super.getResource(s);
+        }
+
+        @Override
+        public Enumeration<URL> getResources(String s) throws IOException {
+            if ( !classNames.contains(s)) return parent.getResources(s);
+            return super.getResources(s);
+        }
+
+        @Override
+        public void setDefaultAssertionStatus(boolean b) {
+            super.setDefaultAssertionStatus(b);
+        }
+
+        @Override
+        public void setPackageAssertionStatus(String s, boolean b) {
+            super.setPackageAssertionStatus(s, b);
+        }
+
+        @Override
+        public void setClassAssertionStatus(String s, boolean b) {
+            super.setClassAssertionStatus(s, b);
+        }
+
+        @Override
+        public void clearAssertionStatus() {
+            super.clearAssertionStatus();
         }
     }
 
