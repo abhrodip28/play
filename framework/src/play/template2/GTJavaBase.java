@@ -221,11 +221,6 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
     protected void invokeTagFile(String tagName, String tagFilePath, GTContentRenderer contentRenderer, Map<String, Object> tagArgs) {
 
-        // Add new arg named "body" which is a fake closure which can be used to get the text-output
-        // from the content of this tag..
-        // Used in selenium.html-template
-        tagArgs.put("body", new GTContentRendererFakeClosure(this, contentRenderer));
-
         GTTemplateLocationReal tagTemplateLocation = GTFileResolver.impl.getTemplateLocationReal(tagFilePath);
         if ( tagTemplateLocation == null ) {
             throw new GTTemplateRuntimeException("Cannot find tag-file '"+tagFilePath+"'");
@@ -239,6 +234,11 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
         // and all scoped variables under _caller
         completeTagArgs.put("_caller", this.binding.getVariables());
+
+        // Add new arg named "body" which is a fake closure which can be used to get the text-output
+        // from the content of this tag..
+        // Used in selenium.html-template
+        completeTagArgs.put("_body", new GTContentRendererFakeClosure(this, contentRenderer));
 
         // TODO: Must handle tag args like  _:_
 
