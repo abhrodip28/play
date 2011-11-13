@@ -1,5 +1,2 @@
-* integrate with old so that all "is the same"
 * template include/extend/render using only key and template from source without file
 * port the rest of the old fasttags? into custom fasttag..
-
-* Check this: // must specialcase for testrunner and docviewer (I don't know why but look at addModule("_testrunner") in Play.loadModules() in framework/src/play/vfs/VirtualFile.java

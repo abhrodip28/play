@@ -235,7 +235,7 @@ public class VirtualFile {
                 if(module.startsWith("module:")){
                     module = module.substring("module:".length());
 
-                    // must specialcase for testrunner and docviewer (I don't know why but look at addModule("_testrunner") in Play.loadModules()
+                    // must special-case for testrunner and docviewer (I don't know why but look at addModule("_testrunner") in Play.loadModules()
                     if ( "testrunner".equals(module) || "docviewer".equals(module)) {
                         // must prefix the name
                         module = "_" + module;
