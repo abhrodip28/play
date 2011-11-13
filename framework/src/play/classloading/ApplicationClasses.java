@@ -50,6 +50,7 @@ public class ApplicationClasses {
         }
         return classes.get(name);
     }
+
     /**
      * Retrieve all application classes assignable to this class.
      * @param clazz The superclass, or the interface.

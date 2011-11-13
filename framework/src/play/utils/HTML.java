@@ -55,7 +55,6 @@ public class HTML {
         if (input == null) {
             return null;
         }
-        //StringBuffer escaped = new StringBuffer(input.length() * 2);
         StringBuilder escaped = null;
 
         int prevStart = 0;
