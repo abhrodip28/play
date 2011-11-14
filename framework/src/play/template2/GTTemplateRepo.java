@@ -237,6 +237,12 @@ public class GTTemplateRepo {
         // create templateLocationReal to actuall template src file
         GTTemplateLocationReal templateLocationReal = GTFileResolver.impl.getTemplateLocationFromRelativePath(templateLocation.relativePath);
 
+        if ( templateLocationReal == null) {
+            // could not fund the corresponding template-source-file
+            file.delete();
+            return null;
+        }
+
         // check if class file and template-src have the same lastModified date
         if ( templateLocationReal.realFile.lastModified() != file.lastModified()) {
             // cached classes are old. cannot use them. delete it so we don't find it again
