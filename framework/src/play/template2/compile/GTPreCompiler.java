@@ -593,7 +593,7 @@ public class GTPreCompiler {
 
             tagArgString = checkAndPatchActionStringsInTagArguments(tagArgString);
 
-            methodName = "args_"+fixStringForCode(tagName) + "_"+(sc.nextMethodIndex++);
+            methodName = "args_"+fixStringForCode(tagName, sc) + "_"+(sc.nextMethodIndex++);
             sc.gprintln("Map<String, Object> " + methodName + "() {", srcLine);
 
             sc.gprintln(" return [" + tagArgString + "];", srcLine);
@@ -606,14 +606,23 @@ public class GTPreCompiler {
         // must return the javacode needed to get the data
         return " Map tagArgs = (Map)g."+methodName+"();\n";
     }
-    
-    protected String fixStringForCode( String s) {
+
+    private static Pattern validCodeString = Pattern.compile("^[A-Za-z_1234567890]+$");
+
+    protected String fixStringForCode( String s, SourceContext sc) {
         // some tags (tag-files) can contain dots int the name - must remove them
-        return s.replace('.','_');
+        s = s.replaceAll("\\.","_1").replaceAll("-", "_2");
+
+        // validate that s now only has chars usable as variableName/Method-name in code
+        if (!validCodeString.matcher(s).find()) {
+            throw new GTCompilationExceptionWithSourceInfo("Invalid string for code-usage: '"+s+"'", sc.templateLocation, sc.currentLineNo+1);
+        }
+
+        return s;
     }
 
     private String generateMethodName(String hint, SourceContext sc) {
-        hint = fixStringForCode(hint);
+        hint = fixStringForCode(hint, sc);
         return "m_" + hint + "_" + (sc.nextMethodIndex++);
     }
 
