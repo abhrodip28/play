@@ -236,7 +236,7 @@ public class GTPreCompiler {
 
     // pattern that find any of the '#/$/& etc we're intercepting. it find the next one - so we know what to look for
     // and start of comment and code-block
-    final static Pattern partsP = Pattern.compile("([#\\$&]|@?@)\\{[^\\}]+\\}|(\\*\\{)|(%\\{)");
+    final static Pattern partsP = Pattern.compile("([#\\$&]|@?@)\\{|(\\*\\{)|(%\\{)");
 
     // pattern that finds all kinds of tags
     final static Pattern tagP = Pattern.compile("#\\{([^\\}]+)\\}");
@@ -244,6 +244,7 @@ public class GTPreCompiler {
 
     final static Pattern endCommentP = Pattern.compile("\\}\\*");
     final static Pattern endScriptP = Pattern.compile("\\}%");
+    final static Pattern endTagExpressionEtcP = Pattern.compile("\\}");
 
     // pattern that finds a $/@/@@ (value) with content/expression
     final static Pattern valueP = Pattern.compile("(?:\\$|@?@|&)\\{([^\\}]+)\\}");
@@ -255,9 +256,14 @@ public class GTPreCompiler {
         int startOffset = sc.lineOffset;
         boolean insideComment = false;
         boolean insideScript = false;
+        boolean insideTagExpressionEtc = false;
         int commentStartLine = 0;
         int scriptStartLine = 0;
         int scriptStartOffset = 0;
+        int tagExpressionEtcStartLine = 0;
+        int tagExpressionEtcStartOffset = 0;
+
+        String tagExpressionEtcTypeFound = null;
 
         while ( sc.currentLineNo < sc.lines.length) {
 
@@ -295,6 +301,8 @@ public class GTPreCompiler {
                     if( scriptPlainText != null ) {
                         return new GTFragmentScript( scriptStartLine, scriptPlainText );
                     }
+
+                    insideScript = false;
                     
                 } else {
                     // skip to next line
@@ -302,6 +310,112 @@ public class GTPreCompiler {
                     sc.lineOffset = 0;
                     continue;
                 }
+            } else if (insideTagExpressionEtc) {
+                // can only look for end-tag/expression.. '}'
+                Matcher m = endTagExpressionEtcP.matcher(currentLine);
+                if (m.find(sc.lineOffset)) {
+                    // found the end of it.
+                    insideTagExpressionEtc = false;
+                    // extract it as a single String
+
+                    // Use plainText-finder to extract our script
+                    String tagString = checkForPlainText(sc, tagExpressionEtcStartLine, tagExpressionEtcStartOffset, m.start())+"}";
+
+                    sc.lineOffset = m.end();
+
+                    if( tagString == null ) {
+                        throw new GTCompilationExceptionWithSourceInfo("Found empty inside tag/expression/etc..", sc.templateLocation, tagExpressionEtcStartLine);
+                    }
+
+                    // now we are ready to process the found tag/expression etc..
+
+                    // strip it for new lines..
+                    tagString = tagString.replaceAll("\\r?\\n", " ");
+
+                    // we know we have found the start of a tag/expression etc.
+                    //
+
+                    if ("#".equals(tagExpressionEtcTypeFound)) {
+                        // we found a tag - go' get it
+
+                        m = tagP.matcher( tagString );
+
+                        if (!m.find()) {
+                            throw new GTCompilationException("Where supposed to find the #tag here..");
+                        }
+
+                        String tagBody = m.group(1);
+                        boolean endedTag = tagBody.startsWith("/");
+                        if ( endedTag) {
+                            tagBody = tagBody.substring(1);
+                        }
+                        boolean tagWithoutBody = tagBody.endsWith("/");
+                        if ( tagWithoutBody) {
+                            tagBody = tagBody.substring(0,tagBody.length()-1);
+                        }
+                        // split tag name and optional params
+
+
+
+                        m = tagBodyP.matcher(tagBody);
+                        if (!m.find()) {
+                            throw new GTCompilationException("Not supposed to happen");
+                        }
+                        String tagName = m.group(1);
+                        String tagArgString = m.group(2);
+                        if (tagArgString == null) {
+                            tagArgString = "";
+                        }
+
+                        if ( endedTag ) {
+                            return new GTFragmentEndOfMultiLineTag(tagExpressionEtcStartLine, tagName);
+                        }
+
+                        return processTag(sc, tagName, tagArgString, tagWithoutBody);
+
+                    } else if ("$".equals(tagExpressionEtcTypeFound)) {
+                        m = valueP.matcher(tagString);
+                        if (!m.find()) {
+                            throw new GTCompilationException("Where supposed to find the $value here..");
+                        }
+
+                        String expression = m.group(1).trim();
+
+                        return generateExpressionPrinter(expression, sc, tagExpressionEtcStartLine);
+
+                    } else if ("@".equals(tagExpressionEtcTypeFound) || "@@".equals(tagExpressionEtcTypeFound)) {
+                        m = valueP.matcher(tagString);
+                        if (!m.find()) {
+                            throw new GTCompilationException("Where supposed to find the @value here..");
+                        }
+
+                        String action = m.group(1).trim();
+
+                        boolean absolute = "@@".equals(tagExpressionEtcTypeFound);
+                        return generateRegularActionPrinter(absolute, action, sc, tagExpressionEtcStartLine);
+
+                    } else if ("&".equals(tagExpressionEtcTypeFound)) {
+                        m = valueP.matcher(tagString);
+                        if (!m.find()) {
+                            throw new GTCompilationException("Where supposed to find the &value here..");
+                        }
+
+                        String messageArgs = m.group(1).trim();
+
+
+                        return generateMessagePrinter(tagExpressionEtcStartLine, messageArgs, sc);
+
+                    }else {
+                        throw new GTCompilationExceptionWithSourceInfo("Don't know how to handle type '"+tagExpressionEtcTypeFound+"'", sc.templateLocation, tagExpressionEtcStartLine+1);
+                    }
+
+                } else {
+                    // skip to next line
+                    sc.currentLineNo++;
+                    sc.lineOffset = 0;
+                    continue;
+                }
+
             }
 
             Matcher m = partsP.matcher(currentLine);
@@ -322,7 +436,7 @@ public class GTPreCompiler {
                 // what did we find?
                 int correctOffset = m.start();
 
-                String type = m.group(1);
+                tagExpressionEtcTypeFound = m.group(1);
                 boolean commentStart = m.group(2) != null;
                 boolean scriptStart = m.group(3) != null;
 
@@ -335,79 +449,14 @@ public class GTPreCompiler {
                     insideScript = true;
                     scriptStartLine = sc.currentLineNo;
                     scriptStartOffset = m.end();
-                } else if ("#".equals(type)) {
-                    // we found a tag - go' get it
-
-                    m = tagP.matcher( currentLine );
-
-                    if (!m.find(correctOffset)) {
-                        throw new GTCompilationException("Where supposed to find the #tag here..");
-                    }
-
-                    String tagBody = m.group(1);
-                    boolean endedTag = tagBody.startsWith("/");
-                    if ( endedTag) {
-                        tagBody = tagBody.substring(1);
-                    }
-                    boolean tagWithoutBody = tagBody.endsWith("/");
-                    if ( tagWithoutBody) {
-                        tagBody = tagBody.substring(0,tagBody.length()-1);
-                    }
-                    // split tag name and optional params
-
-
-
-                    m = tagBodyP.matcher(tagBody);
-                    if (!m.find()) {
-                        throw new GTCompilationException("Not supposed to happen");
-                    }
-                    String tagName = m.group(1);
-                    String tagArgString = m.group(2);
-                    if (tagArgString == null) {
-                        tagArgString = "";
-                    }
-
-                    if ( endedTag ) {
-                        return new GTFragmentEndOfMultiLineTag(sc.currentLineNo, tagName);
-                    }
-
-                    return processTag(sc, tagName, tagArgString, tagWithoutBody);
-
-                } else if ("$".equals(type)) {
-                    m = valueP.matcher(currentLine);
-                    if (!m.find(correctOffset)) {
-                        throw new GTCompilationException("Where supposed to find the $value here..");
-                    }
-
-                    String expression = m.group(1).trim();
-
-                    return generateExpressionPrinter(expression, sc);
-
-                } else if ("@".equals(type) || "@@".equals(type)) {
-                    m = valueP.matcher(currentLine);
-                    if (!m.find(correctOffset)) {
-                        throw new GTCompilationException("Where supposed to find the @value here..");
-                    }
-
-                    String action = m.group(1).trim();
-
-                    boolean absolute = "@@".equals(type);
-                    return generateRegularActionPrinter(absolute, action, sc);
-
-                } else if ("&".equals(type)) {
-                    m = valueP.matcher(currentLine);
-                    if (!m.find(correctOffset)) {
-                        throw new GTCompilationException("Where supposed to find the &value here..");
-                    }
-
-                    String messageArgs = m.group(1).trim();
-
-
-                    return generateMessagePrinter(sc.currentLineNo, messageArgs, sc);
-
-                }else {
-                    throw new GTCompilationExceptionWithSourceInfo("Don't know how to handle type '"+type+"'", sc.templateLocation, sc.currentLineNo+1);
+                } else if ( tagExpressionEtcTypeFound != null) {
+                    insideTagExpressionEtc = true;
+                    tagExpressionEtcStartLine = sc.currentLineNo;
+                    tagExpressionEtcStartOffset = m.start();
+                } else {
+                    throw new GTCompilationException("Strange parser error..");
                 }
+
             } else {
                 // skip to next line
                 sc.currentLineNo++;
@@ -422,6 +471,10 @@ public class GTPreCompiler {
 
         if (insideScript) {
             throw new GTCompilationExceptionWithSourceInfo("Found open script-block", sc.templateLocation, scriptStartLine+1);
+        }
+
+        if (insideTagExpressionEtc) {
+            throw new GTCompilationExceptionWithSourceInfo("Found open "+tagExpressionEtcTypeFound+"-declaration", sc.templateLocation, tagExpressionEtcStartLine+1);
         }
 
 
@@ -441,18 +494,18 @@ public class GTPreCompiler {
     // The play framework impl must implement this method so that it returns the java-code needed to print the
     // correct action url when rendering the template.
     // Look at generateExpressionPrinter for an idea of how it can be done.
-    protected GTFragmentCode generateRegularActionPrinter( boolean absolute, String expression, SourceContext sc) {
+    protected GTFragmentCode generateRegularActionPrinter( boolean absolute, String expression, SourceContext sc, int lineNo) {
         throw new GTCompilationException("actions not supported - override to implement it");
     }
 
-    private GTFragmentCode generateExpressionPrinter(String expression, SourceContext sc) {
+    private GTFragmentCode generateExpressionPrinter(String expression, SourceContext sc, int lineNo) {
         String methodName = generateGroovyExpressionResolver(expression, sc);
 
         // return the java-code for retrieving and printing the expression
 
         String javaCode = varName+" = g."+methodName+"();\n" +
                 "if ("+varName+"!=null) out.append( objectToString("+varName+"));\n";
-        return new GTFragmentCode(sc.currentLineNo, javaCode);
+        return new GTFragmentCode(lineNo, javaCode);
     }
 
     private String generateGroovyExpressionResolver(String expression, SourceContext sc) {

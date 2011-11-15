@@ -11,6 +11,7 @@ import play.template2.GTJavaBase;
 import play.template2.GTTemplateInstanceFactoryLive;
 import play.template2.GTTemplateLocation;
 import play.template2.GTTemplateLocationReal;
+import play.template2.GTTemplateLocationWithEmbeddedSource;
 import play.template2.GTTemplateRepo;
 import play.template2.compile.GTCompiler;
 import play.template2.compile.GTGroovyPimpTransformer;
@@ -102,20 +103,6 @@ public class TemplateLoader {
         }
     }
 
-    private static class TemplateLocationWithEmbeddedSource extends GTTemplateLocation {
-        private String source;
-
-        private TemplateLocationWithEmbeddedSource(String relativePath, String source) {
-            super(relativePath);
-            this.source = source;
-        }
-
-        @Override
-        public String readSource() {
-            return source;
-        }
-    }
-
     /**
      * Load a template from a String
      * @param key A unique identifier for the template, used for retreiving a cached template
@@ -124,7 +111,7 @@ public class TemplateLoader {
      */
     public static Template load(String key, String source) {
 
-        TemplateLocationWithEmbeddedSource tl = new TemplateLocationWithEmbeddedSource(key, source);
+        GTTemplateLocationWithEmbeddedSource tl = new GTTemplateLocationWithEmbeddedSource(key, source);
 
         // get it or compile it
         GTJavaBase gtJavaBase = getGTTemplateInstance(tl);
@@ -142,7 +129,7 @@ public class TemplateLoader {
     public static Template load(String key, String source, boolean reload) {
         // reload is also ignored in the old template implementation...
 
-        TemplateLocationWithEmbeddedSource tl = new TemplateLocationWithEmbeddedSource(key, source);
+        GTTemplateLocationWithEmbeddedSource tl = new GTTemplateLocationWithEmbeddedSource(key, source);
 
         // remove it first
         templateRepo.removeTemplate(tl);
@@ -160,9 +147,7 @@ public class TemplateLoader {
      */
     public static Template loadString(final String source) {
 
-        final String key = Codec.UUID();
-
-        GTTemplateLocation templateLocation = new TemplateLocationWithEmbeddedSource(key, source);
+        GTTemplateLocationWithEmbeddedSource templateLocation = new GTTemplateLocationWithEmbeddedSource(source);
 
         GTTemplateRepo.TemplateInfo ti = templateRepo.compileTemplate(templateLocation);
 

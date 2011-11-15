@@ -1,6 +1,5 @@
 package play.template2.compile;
 
-import play.mvc.Http;
 import play.template2.GTContentRenderer;
 import play.template2.GTFastTag;
 import play.template2.GTFastTagResolver;
@@ -67,7 +66,10 @@ public class GTInternalFastTags extends GTFastTag {
             key = args.get("arg").toString();
             // render content to string
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            String encoding = Http.Response.current().encoding;
+            String encoding = (String)content.getRuntimeProperty("_response_encoding");
+            if ( encoding == null ) {
+                encoding = "utf-8"; // need a default encoding
+            }
             content.render().writeOutput(out, encoding);
             try {
                 value = out.toString(encoding);

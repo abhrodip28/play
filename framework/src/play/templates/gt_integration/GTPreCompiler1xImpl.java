@@ -42,7 +42,7 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
     static final Pattern staticFileP = Pattern.compile("^'(.*)'$");
 
     @Override
-    protected GTFragmentCode generateRegularActionPrinter(boolean absolute, String action, SourceContext sc) {
+    protected GTFragmentCode generateRegularActionPrinter(boolean absolute, String action, SourceContext sc, int lineNo) {
 
         String code;
         Matcher m = staticFileP.matcher(action.trim());
@@ -62,7 +62,7 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
             // generate groovy code
             String groovyMethodName = "action_resolver_" + (sc.nextMethodIndex++);
 
-            sc.gprintln(" String " + groovyMethodName + "() {", sc.currentLineNo);
+            sc.gprintln(" String " + groovyMethodName + "() {", lineNo);
             if (absolute) {
                 sc.gprintln(" return actionBridge._abs()." + action + ";");
             } else {
@@ -74,7 +74,7 @@ public class GTPreCompiler1xImpl extends GTPreCompiler {
             code = " out.append(g."+groovyMethodName+"());";
         }
 
-        return new GTFragmentCode(sc.currentLineNo, code);
+        return new GTFragmentCode(lineNo, code);
     }
 
     @Override
