@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// TODO: This parsing code need some refactoring...
 public class GTPreCompiler {
 
     public static final int maxPlainTextLength = 60000;
@@ -786,13 +787,35 @@ public class GTPreCompiler {
         
     }
 
+    protected static void generateContentOutputCapturing( String contentMethodName, String outputVariableName, GTPreCompiler.SourceContext sc, int line) {
+        sc.jprintln("//generateContentOutputCapturing", line);
+        // remember the original out
+        sc.jprintln("StringWriter org = out;");
+        // remember the original list
+        sc.jprintln("List<StringWriter> orgAllOuts = allOuts;");
+
+        // create a new one for capture
+        sc.jprintln("allOuts = new ArrayList<StringWriter>();");
+        sc.jprintln("initNewOut();");
+
+        // call the content-method
+        sc.jprintln(contentMethodName + "();");
+        // store the output
+        sc.jprintln("List<StringWriter> " + outputVariableName + " = allOuts;");
+        // restore the original out
+        sc.jprintln("out = org;");
+        // restore the list
+        sc.jprintln("allOuts = orgAllOuts;");
+
+    }
+
     private void generateGTContentRenderer(SourceContext sc, String contentMethodName, String contentRendererName) {
         sc.jprintln(" play.template2.GTContentRenderer " + contentRendererName + " = new play.template2.GTContentRenderer(){\n" +
                 "public play.template2.GTRenderingResult render(){", sc.currentLineNo);
 
         // need to capture the output from the contentMethod
         String outputVariableName = "ovn_" + (sc.nextMethodIndex++);
-        GTInternalTagsCompiler.generateContentOutputCapturing(contentMethodName, outputVariableName, sc, sc.currentLineNo);
+        generateContentOutputCapturing(contentMethodName, outputVariableName, sc, sc.currentLineNo);
         sc.jprintln( "return new play.template2.GTRenderingResult("+outputVariableName+");", sc.currentLineNo);
         sc.jprintln(" }", sc.currentLineNo);
         // must implement runtime property get and set

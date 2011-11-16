@@ -8,6 +8,7 @@ import play.template2.GTContentRenderer;
 import play.template2.GTJavaBase;
 import play.template2.GTRenderingResult;
 
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 
 public class GTContentRendererFakeClosure extends Closure {
@@ -23,13 +24,7 @@ public class GTContentRendererFakeClosure extends Closure {
 
     public String renderToString() {
         GTRenderingResult res = contentRenderer.render();
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        res.writeOutput(out, "utf-8");
-        try {
-            return new String(out.toByteArray(), "utf-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return res.getAsString();
     }
 
     @Override
@@ -41,9 +36,19 @@ public class GTContentRendererFakeClosure extends Closure {
     @Override
     public Object call() {
         // run the content
+
+        PrintWriter customOut = (PrintWriter)contentRenderer.getRuntimeProperty("out");
+
         GTRenderingResult res = contentRenderer.render();
-        // inject all the generated output into the output for the template
-        template.insertOutput( res );
+
+        // if someone has given us an alternative out (PrintWriter), then we must write
+        // the result to that PrintWriter.
+        if ( customOut != null) {
+            customOut.write( res.getAsString());
+        } else {
+            // inject all the generated output into the output for the template
+            template.insertOutput( res );
+        }
         return null;
     }
 

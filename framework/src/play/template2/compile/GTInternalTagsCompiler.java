@@ -134,25 +134,5 @@ public class GTInternalTagsCompiler {
         // done..
     }
 
-    protected static void generateContentOutputCapturing( String contentMethodName, String outputVariableName, GTPreCompiler.SourceContext sc, int line) {
-        sc.jprintln("//generateContentOutputCapturing", line);
-        // remember the original out
-        sc.jprintln("StringWriter org = out;");
-        // remember the original list
-        sc.jprintln("List<StringWriter> orgAllOuts = allOuts;");
 
-        // create a new one for capture
-        sc.jprintln("allOuts = new ArrayList<StringWriter>();");
-        sc.jprintln("initNewOut();");
-
-        // call the content-method
-        sc.jprintln(contentMethodName + "();");
-        // store the output
-        sc.jprintln("List<StringWriter> " + outputVariableName + " = allOuts;");
-        // restore the original out
-        sc.jprintln("out = org;");
-        // restore the list
-        sc.jprintln("allOuts = orgAllOuts;");
-
-    }
 }

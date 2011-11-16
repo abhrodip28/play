@@ -237,7 +237,7 @@ public abstract class GTJavaBase extends GTRenderingResult {
 
         // Add new arg named "body" which is a fake closure which can be used to get the text-output
         // from the content of this tag..
-        // Used in selenium.html-template
+        // Used in selenium.html-template and by users (eg: Greenscript)
         completeTagArgs.put("_body", new GTContentRendererFakeClosure(this, contentRenderer));
 
         // TODO: Must handle tag args like  _:_
