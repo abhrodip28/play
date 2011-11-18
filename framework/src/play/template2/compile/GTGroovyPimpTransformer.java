@@ -67,26 +67,6 @@ public class GTGroovyPimpTransformer implements ASTTransformation {
             return super.transform(exp);
 
         }
-
-
-        /*
-        @Override
-        public void visitExpressionStatement(ExpressionStatement es) {
-
-            if ( es.getExpression() instanceof MethodCallExpression) {
-                MethodCallExpression me = (MethodCallExpression)es.getExpression();
-
-                if ("format".equals(me.getMethodAsString())) {
-                    ClassExpression ce = new ClassExpression( new ClassNode(JavaExtensions.class));
-                    es.setExpression(new MethodCallExpression(ce, "fubar", me.getArguments() ));
-                }
-            }
-            super.visitExpressionStatement(es);
-
-        }
-        */
-
-
     }
 
     public void visit(ASTNode[] nodes, SourceUnit source) {
