@@ -186,7 +186,7 @@ public class GTPreCompiler {
     }
 
     public static String generateTemplateClassname(String relativePath) {
-        return "GTTemplate_"+relativePath.replaceAll("[\\{\\}/\\\\\\.:-]", "_");
+        return "GTTemplate_"+ fixStringForCode( relativePath.replaceAll("[\\{\\}/\\\\\\.:]", "_"), null );
     }
 
     public static class GTFragment {
@@ -661,15 +661,19 @@ public class GTPreCompiler {
         return " Map tagArgs = (Map)g."+methodName+"();\n";
     }
 
-    private static Pattern validCodeString = Pattern.compile("^[A-Za-z_1234567890]+$");
+    private static Pattern validCodeString = Pattern.compile("^[A-Za-z_1234567890@]+$");
 
-    protected String fixStringForCode( String s, SourceContext sc) {
+    protected static String fixStringForCode( String s, SourceContext sc) {
         // some tags (tag-files) can contain dots int the name - must remove them
-        s = s.replaceAll("\\.","_1").replaceAll("-", "_2");
+        s = s.replaceAll("\\.","_1").replaceAll("-", "_2").replaceAll("@", "_3");
 
         // validate that s now only has chars usable as variableName/Method-name in code
         if (!validCodeString.matcher(s).find()) {
-            throw new GTCompilationExceptionWithSourceInfo("Invalid string for code-usage: '"+s+"'", sc.templateLocation, sc.currentLineNo+1);
+            if ( sc != null) {
+                throw new GTCompilationExceptionWithSourceInfo("Invalid string for code-usage: '"+s+"'", sc.templateLocation, sc.currentLineNo+1);
+            } else {
+                throw new GTCompilationException("Invalid string for code-usage: '"+s+"'");
+            }
         }
 
         return s;
