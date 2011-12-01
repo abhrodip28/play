@@ -190,7 +190,6 @@ public class TemplateLoader {
             }
         }
 
-        //TODO: remove ?
         if (template == null) {
             VirtualFile tf = Play.getVirtualFile(path);
             if (tf != null && tf.exists()) {

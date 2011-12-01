@@ -1,5 +1,6 @@
 package play.templates.gt_integration;
 
+import play.Play;
 import play.template2.GTFileResolver;
 import play.template2.GTTemplateLocationReal;
 import play.vfs.VirtualFile;
@@ -42,6 +43,13 @@ public class GTFileResolver1xImpl implements GTFileResolver.Resolver {
                 }
             }
         }
+        
+        // try to find it directly on the app-root before we give up
+        VirtualFile tf = Play.getVirtualFile(queryPath);
+        if (tf != null && tf.exists() && !tf.isDirectory()) {
+            return new GTTemplateLocationReal(tf.relativePath(), tf.getRealFile());
+        }
+        
         // didn't find it
         return null;
     }
