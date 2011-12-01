@@ -14,6 +14,7 @@ import play.mvc.Http;
 import play.mvc.Router;
 import play.template2.GTGroovyBase;
 import play.template2.GTJavaBase;
+import play.template2.exceptions.GTRuntimeExceptionForwarder;
 import play.template2.exceptions.GTTemplateRuntimeException;
 import play.templates.GroovyTemplate;
 
@@ -127,7 +128,7 @@ public class GTGroovyBase1xImpl extends GTGroovyBase {
                     throw new UnexpectedException(e);
                 }
             } catch (Exception e) {
-                throw new GTTemplateRuntimeException(e);
+                throw new GTRuntimeExceptionForwarder(e);
             }
         }
 
