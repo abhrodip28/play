@@ -1,10 +1,15 @@
 h1. Custom release based on Play Framework 1.2.4
 
 This is a custom release based on the 1.2.4 version of Play Framework.
-It is not the same as the 1.2.x branch. It contains just a minimum commits from that branch making
+It is not the same as checking out the 1.2.x branch. This release is already build and packaged and
+contains just a minimum of extra commits from that branch making
 this release as stable as the 1.2.4 release but with some additional fixes.
 
+
+
 h2. Custom version 1.2.4-mbknor-1
+
+You can download it here: https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-1.zip
 
 Added the following commits from 1.2.x branch:
 
