@@ -8,9 +8,9 @@ h2. Custom version 1.2.4-mbknor-1
 
 Added the following commits from 1.2.x branch:
 
- * "[#1282] validation-state now survives when using await()":"https://github.com/playframework/play/commit/923d4142d29ca343f651320492c6bfd2f4e9113a"
- * "[#1255] Storing/Restoring params when using await":"https://github.com/playframework/play/commit/5038b4e6c7c3f7090f49875759259d46919b740c"
- * "[#857] [#491] [#1221] [#1198] [#811] Big fix for local variable enhancer and javaflow (fixes multiple Enhancer bugs) (many thanks to Stéphane Godbillon!)":"https://github.com/playframework/play/commit/8823d3827557df3e8bfdbd181bfc8befc9e644d4"
+ * "[#1282] validation-state now survives when using await()":https://github.com/playframework/play/commit/923d4142d29ca343f651320492c6bfd2f4e9113a
+ * "[#1255] Storing/Restoring params when using await":https://github.com/playframework/play/commit/5038b4e6c7c3f7090f49875759259d46919b740c
+ * "[#857] [#491] [#1221] [#1198] [#811] Big fix for local variable enhancer and javaflow (fixes multiple Enhancer bugs) (many thanks to Stéphane Godbillon!)":https://github.com/playframework/play/commit/8823d3827557df3e8bfdbd181bfc8befc9e644d4
 
 Known problems:
  * Does not work with scala-module
