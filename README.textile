@@ -9,7 +9,7 @@ this release as stable as the 1.2.4 release but with some additional fixes.
 
 h2. Custom version 1.2.4-mbknor-1
 
-You can download it here: https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-1.zip
+You can download it here: "play-1.2.4-mbknor-1.zip":https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-1.zip
 
 Added the following commits from 1.2.x branch:
 
