@@ -5,9 +5,9 @@ It is not the same as checking out the 1.2.x branch. This release is already bui
 contains just a minimum of extra commits from that branch making
 this release as stable as the 1.2.4 release but with some additional fixes.
 
-h2. Custom version 1.2.3-mbknor-2 (2011-12-13)
+h2. Custom version 1.2.4-mbknor-2 (2011-12-13)
 
-You can download it here: "play-1.2.4-mbknor-1.zip":https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-2.zip
+You can download it here: "play-1.2.4-mbknor-2.zip":https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-2.zip
 
 Added the following commits from 1.2.x branch:
 
