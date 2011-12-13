@@ -5,6 +5,15 @@ It is not the same as checking out the 1.2.x branch. This release is already bui
 contains just a minimum of extra commits from that branch making
 this release as stable as the 1.2.4 release but with some additional fixes.
 
+h2. Custom version 1.2.3-mbknor-2 (2011-12-13)
+
+You can download it here: "play-1.2.4-mbknor-1.zip":https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-2.zip
+
+Added the following commits from 1.2.x branch:
+
+ * "[#1308] fix local variable initialization":https://github.com/playframework/play/commit/951d0b1800b2d1a8fed6819ff6a6b0a2de6982d5
+ * "[#1308] Testcase for local-variable-tracer and await":https://github.com/playframework/play/commit/7ad2e3b693ee60a850212fe368c3f81282c4940d
+ * "[#857] [#491] [#1221] [#1198] [#811] fix scala module regression":https://github.com/playframework/play/commit/449034275f46c1b156678b4add60da835b1bac02
 
 
 h2. Custom version 1.2.4-mbknor-1
