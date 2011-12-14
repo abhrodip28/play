@@ -5,6 +5,15 @@ It is not the same as checking out the 1.2.x branch. This release is already bui
 contains just a minimum of extra commits from that branch making
 this release as stable as the 1.2.4 release but with some additional fixes.
 
+h2. Custom version 1.2.4-mbknor-3 (2011-12-14)
+
+You can download it here: "play-1.2.4-mbknor-3.zip":https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-3.zip
+
+Added the following commits from 1.2.x branch:
+
+* "[#1282] ValidationPlugin.keys is now stored when using await":https://github.com/playframework/play/commit/1f2452d76d543dae93ecd93353d0c596e99ae8de
+
+
 h2. Custom version 1.2.4-mbknor-2 (2011-12-13)
 
 You can download it here: "play-1.2.4-mbknor-2.zip":https://github.com/downloads/mbknor/play/play-1.2.4-mbknor-2.zip
