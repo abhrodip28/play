@@ -78,6 +78,7 @@ public class PluginCollection {
      */
     protected List<PlayPlugin> enabledPlugins_readOnlyCopy = createReadonlyCopy(enabledPlugins);
 
+    protected PluginMethodMapping enabledPluginMethodMapping = new PluginMethodMapping();
 
     /**
      * Using readonly list to crash if someone tries to modify the copy.
@@ -312,6 +313,7 @@ public class PluginCollection {
                     Collections.sort( enabledPlugins);
                     enabledPlugins_readOnlyCopy = createReadonlyCopy( enabledPlugins);
                     updatePlayPluginsList();
+                    enabledPluginMethodMapping.enablePlugin(plugin);
                     Logger.trace("Plugin " + plugin + " enabled");
                     return true;
                 }
@@ -358,6 +360,7 @@ public class PluginCollection {
                 //plugin was removed
                 enabledPlugins_readOnlyCopy = createReadonlyCopy( enabledPlugins);
                 updatePlayPluginsList();
+                enabledPluginMethodMapping.disablePlugin(plugin);
                 Logger.trace("Plugin " + plugin + " disabled");
                 return true;
             }
@@ -445,7 +448,7 @@ public class PluginCollection {
     }
 
     public boolean compileSources() {
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.compileSources ){
             if(plugin.compileSources()) {
                 return true;
             }
@@ -454,7 +457,7 @@ public class PluginCollection {
     }
 
     public boolean detectClassesChange() {
-        for(PlayPlugin plugin : getEnabledPlugins()){
+        for(PlayPlugin plugin : enabledPluginMethodMapping.detectClassesChange){
             if(plugin.detectClassesChange()) {
                 return true;
             }
@@ -463,31 +466,31 @@ public class PluginCollection {
     }
 
     public void invocationFinally(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.invocationFinally ){
             plugin.invocationFinally();
         }
     }
 
     public void beforeInvocation(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.beforeInvocation ){
             plugin.beforeInvocation();
         }
     }
 
     public void afterInvocation(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.afterInvocation ){
             plugin.afterInvocation();
         }
     }
 
     public void onInvocationSuccess(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.onInvocationSuccess ){
             plugin.onInvocationSuccess();
         }
     }
 
     public void onInvocationException(Throwable e) {
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.onInvocationException) {
             try {
                 plugin.onInvocationException(e);
             } catch (Throwable ex) {
@@ -497,55 +500,55 @@ public class PluginCollection {
     }
 
     public void beforeDetectingChanges(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.beforeDetectingChanges ){
             plugin.beforeDetectingChanges();
         }
     }
 
     public void detectChange(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.detectChange ){
             plugin.detectChange();
         }
     }
 
     public void onApplicationReady(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.onApplicationReady ){
             plugin.onApplicationReady();
         }
     }
 
     public void onConfigurationRead(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.onConfigurationRead ){
             plugin.onConfigurationRead();
         }
     }
 
     public void onApplicationStart(){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.onApplicationStart) {
             plugin.onApplicationStart();
         }
     }
 
     public void afterApplicationStart(){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.afterApplicationStart ){
             plugin.afterApplicationStart();
         }
     }
 
     public void onApplicationStop(){
-        for( PlayPlugin plugin : getReversedEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.onApplicationStop ){
             plugin.onApplicationStop();
         }
     }
 
     public void onEvent(String message, Object context){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.onEvent){
             plugin.onEvent(message, context);
         }
     }
 
     public void enhance(ApplicationClasses.ApplicationClass applicationClass){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.enhance) {
             try {
                 long start = System.currentTimeMillis();
                 plugin.enhance(applicationClass);
@@ -561,7 +564,7 @@ public class PluginCollection {
     @Deprecated
     public List<ApplicationClasses.ApplicationClass> onClassesChange(List<ApplicationClasses.ApplicationClass> modified){
         List<ApplicationClasses.ApplicationClass> modifiedWithDependencies = new ArrayList<ApplicationClasses.ApplicationClass>();
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.onClassesChange ){
             modifiedWithDependencies.addAll( plugin.onClassesChange(modified) );
         }
         return modifiedWithDependencies;
@@ -569,13 +572,13 @@ public class PluginCollection {
 
     @Deprecated
     public void compileAll(List<ApplicationClasses.ApplicationClass> classes){
-        for( PlayPlugin plugin : getEnabledPlugins() ){
+        for( PlayPlugin plugin : enabledPluginMethodMapping.compileAll ){
             plugin.compileAll(classes);
         }
     }
 
     public Object bind(RootParamNode rootParamNode, String name, Class<?> clazz, Type type, Annotation[] annotations){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.bind) {
             Object result = plugin.bind(rootParamNode, name, clazz, type, annotations);
             if (result != null) {
                 return result;
@@ -585,7 +588,7 @@ public class PluginCollection {
     }
 
     public Object bindBean(RootParamNode rootParamNode, String name, Object bean){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.bindBean) {
             Object result = plugin.bindBean(rootParamNode, name, bean);
             if (result != null) {
                 return result;
@@ -595,7 +598,7 @@ public class PluginCollection {
     }
 
     public Map<String, Object> unBind(Object src, String name){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.unBind) {
             Map<String, Object> r = plugin.unBind(src, name);
             if (r != null) {
                 return r;
@@ -605,7 +608,7 @@ public class PluginCollection {
     }
 
     public Object willBeValidated(Object value){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.willBeValidated) {
             Object newValue = plugin.willBeValidated(value);
             if (newValue != null) {
                 return newValue;
@@ -615,7 +618,7 @@ public class PluginCollection {
     }
 
     public Model.Factory modelFactory(Class<? extends Model> modelClass){
-        for(PlayPlugin plugin : getEnabledPlugins()) {
+        for(PlayPlugin plugin : enabledPluginMethodMapping.modelFactory) {
             Model.Factory factory = plugin.modelFactory(modelClass);
             if(factory != null) {
                 return factory;
@@ -625,7 +628,7 @@ public class PluginCollection {
     }
 
     public String getMessage(String locale, Object key, Object... args){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.getMessage) {
             String message = plugin.getMessage(locale, key, args);
             if(message != null) {
                 return message;
@@ -635,43 +638,43 @@ public class PluginCollection {
     }
 
     public void beforeActionInvocation(Method actionMethod){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.beforeActionInvocation) {
             plugin.beforeActionInvocation(actionMethod);
         }
     }
 
     public void onActionInvocationResult(Result result){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.onActionInvocationResult) {
             plugin.onActionInvocationResult(result);
         }
     }
 
     public void afterActionInvocation(){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.afterActionInvocation) {
             plugin.afterActionInvocation();
         }
     }
 
     public void routeRequest(Http.Request request){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.routeRequest) {
             plugin.routeRequest(request);
         }
     }
 
     public void onRequestRouting(Router.Route route){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.onRequestRouting) {
             plugin.onRequestRouting(route);
         }
     }
 
     public void onRoutesLoaded(){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.onRoutesLoaded) {
             plugin.onRoutesLoaded();
         }
     }
 
     public boolean rawInvocation(Http.Request request, Http.Response response)throws Exception{
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.rawInvocation) {
             if (plugin.rawInvocation(request, response)) {
                 //raw = true;
                 return true;
@@ -682,7 +685,7 @@ public class PluginCollection {
 
 
     public boolean serveStatic(VirtualFile file, Http.Request request, Http.Response response){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.serveStatic) {
             if (plugin.serveStatic(file, request, response)) {
                 //raw = true;
                 return true;
@@ -693,14 +696,14 @@ public class PluginCollection {
 
     public List<String> addTemplateExtensions(){
         List<String> list = new ArrayList<String>();
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.addTemplateExtensions) {
             list.addAll(plugin.addTemplateExtensions());
         }
         return list;
     }
 
     public String overrideTemplateSource(BaseTemplate template, String source){
-        for(PlayPlugin plugin : getEnabledPlugins()) {
+        for(PlayPlugin plugin : enabledPluginMethodMapping.overrideTemplateSource) {
             String newSource = plugin.overrideTemplateSource(template, source);
             if(newSource != null) {
                 source = newSource;
@@ -710,7 +713,7 @@ public class PluginCollection {
     }
 
     public Template loadTemplate(VirtualFile file){
-        for(PlayPlugin plugin : getEnabledPlugins() ) {
+        for(PlayPlugin plugin : enabledPluginMethodMapping.loadTemplate ) {
             Template pluginProvided = plugin.loadTemplate(file);
             if(pluginProvided != null) {
                 return pluginProvided;
@@ -720,13 +723,13 @@ public class PluginCollection {
     }
 
     public void afterFixtureLoad(){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.afterFixtureLoad) {
             plugin.afterFixtureLoad();
         }
     }
 
     public TestEngine.TestResults runTest(Class<BaseTest> clazz){
-        for (PlayPlugin plugin : getEnabledPlugins()) {
+        for (PlayPlugin plugin : enabledPluginMethodMapping.runTest) {
             TestEngine.TestResults pluginTestResults = plugin.runTest(clazz);
             if (pluginTestResults != null) {
                 return pluginTestResults;
