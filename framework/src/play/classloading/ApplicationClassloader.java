@@ -48,6 +48,8 @@ public class ApplicationClassloader extends ClassLoader {
      */
     public ApplicationClassloaderState currentState = new ApplicationClassloaderState();
 
+    private Object loadClassLock = new Object();
+
     /**
      * This protection domain applies to all loaded classes.
      */
@@ -74,20 +76,29 @@ public class ApplicationClassloader extends ClassLoader {
      * You know ...
      */
     @Override
-    protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        // We can look for loaded classes without using synchronize
         Class<?> c = findLoadedClass(name);
         if (c != null) {
+            // When all classes are loaded, we will always return here.
             return c;
         }
 
-        // First check if it's an application Class
-        Class<?> applicationClass = loadApplicationClass(name);
-        if (applicationClass != null) {
-            if (resolve) {
-                resolveClass(applicationClass);
+        // Need to synchronize before we try to load applicationClass
+        // A lot of activity here when starting up..
+        synchronized( loadClassLock ) {
+            // First check if it's an application Class
+            Class<?> applicationClass = loadApplicationClass(name);
+            if (applicationClass != null) {
+                if (resolve) {
+                    resolveClass(applicationClass);
+                }
+                return applicationClass;
             }
-            return applicationClass;
         }
+
+        // Don't have to use synchronize when we know we did not find it as appClass,
+        // and are trying parent classloader..
 
         // Delegate to the classic classloader
         return super.loadClass(name, resolve);
